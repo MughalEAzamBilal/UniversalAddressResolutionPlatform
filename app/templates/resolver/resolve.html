@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Address - {{ data.public_id|upper }} | Universal Address</title>
+  
+  <!-- OpenGraph Metadata for Smart Previews -->
+  <meta property="og:title" content="Address - {{ data.public_id|upper }}">
+  <meta property="og:description" content="{{ data.display_text }}">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:type" content="place">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/static/css/resolver.css">
+</head>
+<body class="resolver-body">
+
+  <div id="resolver-data" 
+       data-address="{{ data.display_text }}"
+       data-destination="{{ data.destination_url or '' }}"
+       data-delay="{{ data.redirect_seconds }}">
+  </div>
+
+  <div class="resolver-card">
+    <!-- Animated Pin Icon -->
+    <div class="resolver-icon-wrapper">
+      <div class="resolver-icon-bg"></div>
+      <div id="resolver-icon-circle" class="resolver-icon-circle">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Badge -->
+    <div class="resolver-badge">
+      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--resolver-primary);"></span>
+      {{ data.address_type }} • {{ data.public_id|upper }}
+    </div>
+
+    <!-- Physical Address Text -->
+    <div class="resolver-address-box">
+      <h1 class="resolver-address-text">{{ data.display_text }}</h1>
+      <p class="resolver-city-country">{{ data.city }}, {{ data.country }}</p>
+    </div>
+
+    <!-- Copy Confirmation State -->
+    <div id="copy-status-card" class="copy-status-card">
+      <svg class="status-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span class="status-text">Address copied to clipboard</span>
+    </div>
+
+    <!-- Fallback Manual Copy Button -->
+    <button id="btn-manual-copy" class="btn-manual-copy" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      Copy Address
+    </button>
+
+    <!-- Google Maps Driving Directions Section (Shown when opened / after copy) -->
+    <div id="driving-nav-card" class="driving-nav-card">
+      <div class="driving-nav-header">
+        <div class="driving-nav-badge">
+          <span class="pulsing-dot"></span>
+          <span>Google Maps Navigation</span>
+        </div>
+      </div>
+      <a id="btn-driving-directions" 
+         class="btn-driving-directions" 
+         href="{{ data.driving_directions_url or data.destination_url }}" 
+         target="_blank" 
+         rel="noopener">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.1 11.2 2 11.6 2 12v4c0 .6.4 1 1 1h2"></path>
+          <circle cx="7" cy="17" r="2"></circle>
+          <path d="M9 17h6"></path>
+          <circle cx="17" cy="17" r="2"></circle>
+        </svg>
+        <span>🚗 Start Driving Directions</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <p class="driving-nav-hint">
+        Turn-by-turn driving route to destination with live traffic
+      </p>
+    </div>
+
+    <!-- Countdown & Redirect -->
+    {% if data.destination_url %}
+    <div id="countdown-box" class="countdown-box">
+      <span>Redirecting to destination in</span>
+      <div id="countdown-number" class="countdown-circle">{{ data.redirect_seconds }}</div>
+      <span>seconds...</span>
+    </div>
+    {% endif %}
+
+    <!-- Sponsored / Ad Placement (Below Resolver) -->
+    {% if ads %}
+    <div class="ad-container-below-resolver" style="margin: 20px 0; text-align: center;">
+      {% for ad in ads %}
+      <div class="ad-unit" style="margin-bottom: 12px; background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-md); padding: 10px; overflow: hidden;">
+        {% if ad.ad_type == 'BANNER_IMAGE' and ad.image_url %}
+          <a href="{{ ad.target_url or '#' }}" target="_blank" rel="noopener sponsored">
+            <img src="{{ ad.image_url }}" alt="{{ ad.title }}" style="max-width: 100%; height: auto; border-radius: 6px;">
+          </a>
+        {% elif ad.code_snippet %}
+          {{ ad.code_snippet | safe }}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="resolver-footer">
+      Powered by <a href="/">Universal Address</a>
+    </div>
+  </div>
+
+  <script src="/static/js/resolver.js"></script>
+</body>
+</html>

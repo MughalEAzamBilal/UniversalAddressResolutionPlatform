@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ error_title }} | Universal Address</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/resolver.css">
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body class="resolver-body">
+
+  <div class="resolver-card">
+    <div class="resolver-icon-wrapper">
+      <div class="resolver-icon-circle" style="background: rgba(239, 68, 68, 0.1); color: var(--error-500); box-shadow: none;">
+        {% if status_code == 410 %}
+        <!-- Pause / Deactivated -->
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="10" y1="15" x2="10" y2="9"></line><line x1="14" y1="15" x2="14" y2="9"></line></svg>
+        {% elif status_code == 403 %}
+        <!-- Lock / Private -->
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        {% else %}
+        <!-- Not Found -->
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="resolver-badge" style="background: rgba(239, 68, 68, 0.08); color: var(--error-600);">
+      Status: {{ status_code }}
+    </div>
+
+    <div class="resolver-address-box">
+      <h1 class="resolver-address-text" style="font-size: 22px;">{{ error_title }}</h1>
+      <p class="resolver-city-country" style="margin-top: 8px;">{{ error_message }}</p>
+    </div>
+
+    {% if public_id %}
+    <p style="font-size: 13px; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 24px;">
+      Reference ID: {{ public_id|upper }}
+    </p>
+    {% endif %}
+
+    <a href="/" class="btn btn-primary" style="width: 100%;">Return to Home</a>
+
+    <div class="resolver-footer">
+      Universal Address Resolution Platform
+    </div>
+  </div>
+
+</body>
+</html>

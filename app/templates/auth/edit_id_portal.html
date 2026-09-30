@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Edit ID | Universal Address Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 36px auto; padding-bottom: 40px;">
+
+  <!-- Header -->
+  <div style="text-align: center; margin-bottom: 24px;">
+    <div style="width: 54px; height: 54px; margin: 0 auto 14px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid var(--primary-500); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--primary-600)" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+    </div>
+    <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-main); margin-bottom: 6px;">
+      Enter Your 13-Character Edit ID
+    </h1>
+    <p style="font-size: 14px; color: var(--text-secondary); max-width: 480px; margin: 0 auto; line-height: 1.5;">
+      Your Edit ID is the <strong>only key</strong> required to manage and update your addresses. No password or email needed.
+    </p>
+  </div>
+
+  {% if error %}
+  <div style="background: var(--error-50); border: 1px solid rgba(239, 68, 68, 0.25); color: var(--error-600); padding: 14px 18px; border-radius: var(--radius-md); font-size: 14px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    <span>{{ error }}</span>
+  </div>
+  {% endif %}
+
+  <!-- Single Focused Entry Card (Zero Redundancy) -->
+  <div class="card" style="padding: 28px 32px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);">
+    <form action="/edit" method="post" id="edit-id-form">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" for="edit_id" style="font-size: 14px; font-weight: 700; margin-bottom: 8px; display: block; color: var(--text-main);">
+          Your Private 13-Character Edit ID
+        </label>
+        <div style="position: relative;">
+          <input type="text" id="edit_id" name="edit_id" class="form-control" required autofocus 
+                 placeholder="e.g. ab1226MA12391" 
+                 maxlength="16"
+                 style="font-family: var(--font-mono); font-size: 20px; font-weight: 800; letter-spacing: 2px; text-align: center; text-transform: uppercase; padding: 14px; border: 2px solid var(--primary-400); border-radius: var(--radius-md);">
+        </div>
+      </div>
+
+      <!-- Single Crisp Suggestion / Format Breakdown -->
+      <div style="background: var(--surface-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 24px; font-size: 12px; line-height: 1.5;">
+        <div style="font-weight: 700; color: var(--primary-700); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          💡 Suggestion: How to fill your 13-Character Edit ID
+        </div>
+        <div style="color: var(--text-secondary); margin-bottom: 8px;">
+          Your 13-Character Edit ID is assembled following this exact sequence:
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 6px; margin-bottom: 10px;">
+          <div style="background: white; border: 1px solid var(--border-color); padding: 6px 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">1. Public ID</div>
+            <strong style="color: var(--primary-700); font-family: var(--font-mono); font-size: 12px;">ab1226</strong>
+          </div>
+          <div style="background: white; border: 1px solid var(--border-color); padding: 6px 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">2. Father Initial</div>
+            <strong style="color: var(--primary-700); font-family: var(--font-mono); font-size: 12px;">M</strong>
+          </div>
+          <div style="background: white; border: 1px solid var(--border-color); padding: 6px 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">3. Mother Initial</div>
+            <strong style="color: var(--primary-700); font-family: var(--font-mono); font-size: 12px;">A</strong>
+          </div>
+          <div style="background: white; border: 1px solid var(--border-color); padding: 6px 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">4. CNIC Last 3</div>
+            <strong style="color: var(--primary-700); font-family: var(--font-mono); font-size: 12px;">123</strong>
+          </div>
+          <div style="background: white; border: 1px solid var(--border-color); padding: 6px 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">5. DOB Year</div>
+            <strong style="color: var(--primary-700); font-family: var(--font-mono); font-size: 12px;">91</strong>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+          <span style="color: var(--text-secondary);">Result: <code style="font-weight: 800; color: var(--primary-700); font-size: 13px;">ab1226MA12391</code></span>
+          <span style="font-size: 11px; color: var(--text-muted); font-style: italic;">Case-Insensitive &bull; 13 characters</span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; padding: 14px; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Verify Edit ID & Unlock Addresses &rarr;
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color); font-size: 13px; color: var(--text-secondary);">
+      Haven't created an address or Edit ID yet? 
+      <a href="/address/new" style="font-weight: 700; color: var(--primary-600); text-decoration: underline;">
+        Create Your Edit ID & Address
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

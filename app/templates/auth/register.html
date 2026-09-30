@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Edit ID Based Platform | Universal Address{% endblock %}
+
+{% block content %}
+<div style="max-width: 520px; margin: 40px auto; text-align: center;">
+  <div class="card" style="padding: 36px 32px;">
+    <div style="font-size: 32px; margin-bottom: 12px;">🛡️</div>
+    <h1 style="font-size: 22px; font-weight: 800; margin-bottom: 10px; color: var(--text-main);">
+      No Email Registration Required
+    </h1>
+    <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px;">
+      Universal Address Resolution Platform uses private <strong>Edit IDs</strong> instead of traditional email and password accounts. You can create an address directly without sign-up.
+    </p>
+    <a href="/address/new" class="btn btn-primary btn-lg" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+      Create Edit ID & Address &rarr;
+    </a>
+    <div style="margin-top: 16px;">
+      <a href="/edit" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">
+        Already have an Edit ID? Enter it here &rarr;
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

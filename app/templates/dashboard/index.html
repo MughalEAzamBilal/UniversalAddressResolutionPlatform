@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Universal Address{% endblock %}
+
+{% block content %}
+<div>
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px;">
+    <div>
+      <h1 class="page-title">Good afternoon, {{ current_user.full_name }}</h1>
+      <p class="page-description">Here is the real-time status of your smart address network.</p>
+    </div>
+    <a href="/address/new" class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      Create Address
+    </a>
+  </div>
+
+  <!-- Metric Cards -->
+  <div class="grid-stats">
+    <div class="stat-card">
+      <div class="stat-info">
+        <span class="stat-label">Total Addresses</span>
+        <div class="stat-value">{{ total_count }}</div>
+      </div>
+      <div class="stat-icon icon-blue">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <span class="stat-label">Active Links</span>
+        <div class="stat-value">{{ active_count }}</div>
+      </div>
+      <div class="stat-icon icon-green">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <span class="stat-label">Public Resolves</span>
+        <div class="stat-value">{{ user_resolutions }}</div>
+      </div>
+      <div class="stat-icon icon-teal">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <span class="stat-label">Account Role</span>
+        <div class="stat-value" style="font-size: 20px; margin-top: 10px;">{{ current_user.role }}</div>
+      </div>
+      <div class="stat-icon icon-purple">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Addresses Card -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Recent Addresses</h2>
+        <p class="card-subtitle">Your latest smart links and physical locations</p>
+      </div>
+      <a href="/my-addresses" class="btn btn-secondary btn-sm">View All Addresses</a>
+    </div>
+
+    {% if addresses %}
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Public ID</th>
+            <th>Type</th>
+            <th>Location</th>
+            <th>Destination</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for addr in addresses %}
+          <tr>
+            <td>
+              <a href="/address/{{ addr.public_id }}/view" class="public-id-badge" style="text-decoration: none;">
+                {{ addr.public_id }}
+              </a>
+            </td>
+            <td>
+              <span class="badge badge-delivery">{{ addr.address_type }}</span>
+            </td>
+            <td>
+              <div style="font-weight: 600; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ addr.address_text }}
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted);">{{ addr.city }}, {{ addr.country }}</div>
+            </td>
+            <td>
+              {% if addr.destination_url %}
+              <a href="{{ addr.destination_url }}" target="_blank" rel="noopener" style="font-size: 12px; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px;">
+                {{ addr.destination_url[:24] }}...
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              </a>
+              {% else %}
+              <span style="font-size: 12px; color: var(--text-muted);">None</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if addr.is_active %}
+              <span class="badge badge-active">Active</span>
+              {% else %}
+              <span class="badge badge-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+              {{ addr.created_at.strftime('%b %d, %Y') }}
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('{{ base_url }}/{{ addr.public_id }}', 'Smart URL copied!')" title="Copy Public URL">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+              <a href="/{{ addr.public_id }}" target="_blank" class="btn btn-secondary btn-sm" title="Open Resolver">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+              </a>
+              <a href="/address/{{ addr.public_id }}/edit" class="btn btn-secondary btn-sm" title="Edit Address">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div style="text-align: center; padding: 48px 20px;">
+      <div class="stat-icon icon-blue" style="width: 56px; height: 56px; margin: 0 auto 16px; font-size: 26px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 6px;">No addresses yet</h3>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">Create your first smart address link to share physical locations easily.</p>
+      <a href="/address/new" class="btn btn-primary">
+        + Create Your First Address
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

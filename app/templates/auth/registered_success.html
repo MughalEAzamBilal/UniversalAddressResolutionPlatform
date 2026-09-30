@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Registration Successful | Universal Address{% endblock %}
+
+{% block content %}
+<div style="max-width: 520px; margin: 40px auto; text-align: center;">
+  <div class="card" style="padding: 40px 32px;">
+    
+    <div class="stat-icon icon-green" style="width: 56px; height: 56px; margin: 0 auto 20px; font-size: 28px;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+
+    <h1 style="font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px;">
+      Account Created Successfully!
+    </h1>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 28px;">
+      Welcome, <strong>{{ username }}</strong>. Here is your private <strong>Edit ID</strong>:
+    </p>
+
+    <!-- Prominent Edit ID Box -->
+    <div style="background: var(--surface-secondary); border: 2px dashed var(--primary-300); border-radius: var(--radius-lg); padding: 24px 20px; margin-bottom: 24px;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 8px;">
+        Your Personal Edit ID
+      </div>
+      <div id="user-edit-id" style="font-family: var(--font-mono); font-size: 28px; font-weight: 800; color: var(--primary-700); letter-spacing: 0.05em; margin-bottom: 14px;">
+        {{ edit_id }}
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="copyToClipboard('{{ edit_id }}', 'Edit ID copied to clipboard!')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Copy Edit ID
+      </button>
+    </div>
+
+    <!-- Security Information -->
+    <div style="text-align: left; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: var(--radius-md); padding: 16px; margin-bottom: 28px; font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+      <strong style="color: var(--warning-600); display: block; margin-bottom: 4px;">Important Privacy Rules:</strong>
+      <ul style="padding-left: 18px; margin: 0;">
+        <li>Your Edit ID is <strong>case-insensitive</strong> (e.g. <code>{{ edit_id.lower() }}</code> also works).</li>
+        <li>It gives you instant editing access to all your addresses from <code>/edit</code>.</li>
+        <li>It is <strong>NEVER</strong> exposed in your public address links (e.g. <code>/ab1226</code>).</li>
+      </ul>
+    </div>
+
+    <a href="/dashboard" class="btn btn-gradient btn-lg" style="width: 100%;">
+      Proceed to Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}ID Generator Telemetry | Universal Address Admin{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <h1 class="page-title">Public ID Generator Telemetry</h1>
+      <p class="page-description" style="margin-bottom: 0;">
+        Capacity monitoring, stage progression, and exhaustion metrics for Year <strong>{{ year }}</strong>.
+      </p>
+    </div>
+    <span class="public-id-badge" style="font-size: 16px;">Year: {{ year }}</span>
+  </div>
+
+  <!-- Stage Flow Visualizer -->
+  <div class="card" style="padding: 24px; margin-bottom: 28px;">
+    <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text-secondary);">
+      Deterministic Stage Progression
+    </h3>
+    <div style="display: flex; align-items: center; gap: 12px; overflow-x: auto; padding-bottom: 8px;">
+      {% for p in patterns %}
+      <div style="background: var(--surface-secondary); padding: 10px 16px; border-radius: var(--radius-md); border: 1px solid var(--border); min-width: 140px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted);">{{ p.name|upper }}</div>
+        <div style="font-family: var(--font-mono); font-size: 14px; font-weight: 800; color: var(--primary-700);">{{ p.pattern }}</div>
+        <div style="margin-top: 4px;">
+          {% if p.status == 'ACTIVE' %}
+          <span class="badge badge-active" style="font-size: 10px;">Active</span>
+          {% elif p.status == 'EXHAUSTED' %}
+          <span class="badge badge-inactive" style="font-size: 10px; background: rgba(239, 68, 68, 0.1); color: var(--error-600);">Exhausted</span>
+          {% else %}
+          <span class="badge badge-public" style="font-size: 10px;">Standby</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if not loop.last %}
+      <span style="color: var(--text-muted); font-weight: 800;">→</span>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Patterns Detail Grid -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    {% for p in patterns %}
+    <div class="card" style="border-left: 5px solid {% if p.status == 'ACTIVE' %}var(--primary-600){% elif p.status == 'EXHAUSTED' %}var(--error-500){% else %}var(--border){% endif %};">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Stage {{ p.priority }}</span>
+          <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: var(--font-mono);">{{ p.pattern }}</span>
+            <span style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">({{ p.name }})</span>
+          </h2>
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">{{ p.description }}</div>
+        </div>
+
+        <div>
+          {% if p.status == 'ACTIVE' %}
+          <span class="badge badge-active" style="padding: 6px 14px; font-size: 13px;">ACTIVE STAGE</span>
+          {% elif p.status == 'EXHAUSTED' %}
+          <span class="badge" style="background: rgba(239, 68, 68, 0.1); color: var(--error-600); padding: 6px 14px; font-size: 13px;">EXHAUSTED</span>
+          {% else %}
+          <span class="badge badge-inactive" style="padding: 6px 14px; font-size: 13px;">STANDBY</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Capacity Progress Bar -->
+      <div style="margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+          <span><strong>{{ p.used }}</strong> used</span>
+          <span><strong>{{ p.remaining }}</strong> remaining of <strong>{{ p.capacity }}</strong> total</span>
+        </div>
+        <div style="width: 100%; height: 10px; background: var(--surface-secondary); border-radius: 9999px; overflow: hidden;">
+          <div style="width: {{ p.percentage_used }}%; height: 100%; background: {% if p.percentage_used > 90 %}var(--error-500){% else %}var(--primary-600){% endif %}; transition: width 0.4s ease;"></div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: var(--surface-secondary); padding: 12px 16px; border-radius: var(--radius-md); font-size: 13px;">
+        <div>Capacity: <strong>{{ p.capacity }}</strong></div>
+        <div>Used: <strong>{{ p.used }}</strong></div>
+        <div>Utilization: <strong>{{ p.percentage_used }}%</strong></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

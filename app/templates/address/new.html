@@ -1,0 +1,618 @@
+{% extends "base.html" %}
+
+{% block title %}Create Smart Address | Universal Address{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 780px; margin: 0 auto;">
+  
+  <div style="margin-bottom: 24px;">
+    <h1 class="page-title">Create Smart Address</h1>
+    <p class="page-description" style="margin-bottom: 0;">Configure your physical location to generate a unique 6-character Public Address ID.</p>
+  </div>
+
+  {% if welcome_edit_id %}
+  <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(37, 99, 235, 0.08) 100%); border: 2px solid var(--success-500); padding: 20px 24px; border-radius: var(--radius-lg); margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span style="font-size: 22px;">🎉</span>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--success-700); margin: 0;">Your Edit ID is Ready!</h3>
+        </div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.5;">
+          Your address will be linked to your private Edit ID. <strong>Save or write this down</strong> — whenever you want to update this address, enter this key:
+        </p>
+        <div style="display: inline-flex; align-items: center; gap: 12px; background: white; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+          <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">Your Edit ID:</span>
+          <strong style="font-family: var(--font-mono); font-size: 18px; color: var(--primary-700); letter-spacing: 1.5px;">{{ welcome_edit_id }}</strong>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="copyToClipboard('{{ welcome_edit_id }}', 'Edit ID copied to clipboard!')" style="padding: 4px 12px; font-size: 12px;">
+            Copy
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+
+  <!-- Wizard Step Indicator -->
+  <div class="wizard-steps">
+    <div id="indicator-step-1" class="wizard-step active" onclick="goToStep(1)" style="cursor: pointer;" title="Step 1: Delivery Reach">
+      <div class="wizard-step-num">1</div>
+      <span>Reach</span>
+    </div>
+    <div id="indicator-step-2" class="wizard-step" onclick="goToStep(2)" style="cursor: pointer;" title="Step 2: Location">
+      <div class="wizard-step-num">2</div>
+      <span>Location</span>
+    </div>
+    <div id="indicator-step-3" class="wizard-step" onclick="goToStep(3)" style="cursor: pointer;" title="Step 3: Street & Map Pin">
+      <div class="wizard-step-num">3</div>
+      <span>Street</span>
+    </div>
+    <div id="indicator-step-4" class="wizard-step" onclick="goToStep(4)" style="cursor: pointer;" title="Step 4: Smart Redirect Destination">
+      <div class="wizard-step-num">4</div>
+      <span>Destination</span>
+    </div>
+    <div id="indicator-step-5" class="wizard-step" onclick="goToStep(5)" style="cursor: pointer;" title="Step 5: Review & Submit">
+      <div class="wizard-step-num">5</div>
+      <span>Review</span>
+    </div>
+  </div>
+
+  {% if error %}
+  <div style="background: var(--error-50); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--error-600); padding: 12px 14px; border-radius: var(--radius-md); font-size: 13px; margin-bottom: 20px;">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <div class="card" style="padding: 32px;">
+    <form id="address-form" action="/address/new" method="post">
+      
+      <!-- Step 1: Basic Information -->
+      <div id="step-1">
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 18px;">Step 1: Category, Delivery Reach & Contact</h2>
+        
+        <input type="hidden" id="address_type" name="address_type" value="PERSONAL">
+        <input type="hidden" id="location_scope" name="location_scope" value="LOCAL">
+
+        <!-- Address Category (Personal vs Business) -->
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label class="form-label" style="font-size: 15px; font-weight: 700; margin-bottom: 12px; display: block; color: var(--text-main);">
+            Address Category <span class="required" style="color: var(--error-600); font-size: 16px;">*</span>
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            
+            <!-- Option 1: Personal Address -->
+            <div id="cat-personal-card" onclick="selectAddressCategory('PERSONAL')" class="reach-card reach-card-active">
+              <div class="reach-card-header">
+                <span class="reach-icon">👤</span>
+                <span id="badge-cat-personal" class="reach-badge badge-active">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ACTIVE
+                </span>
+              </div>
+              <div class="reach-title">Personal Address</div>
+              <div class="reach-desc">
+                For homes, residences, personal parcels & private deliveries
+              </div>
+            </div>
+
+            <!-- Option 2: Business Address -->
+            <div id="cat-business-card" onclick="selectAddressCategory('BUSINESS')" class="reach-card reach-card-inactive">
+              <div class="reach-card-header">
+                <span class="reach-icon">🏢</span>
+                <span id="badge-cat-business" class="reach-badge badge-inactive">
+                  INACTIVE
+                </span>
+              </div>
+              <div class="reach-title">Business Address</div>
+              <div class="reach-desc">
+                For shops, offices, companies & commercial logistics (Transferable Edit ID)
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Business Name (Dynamically visible when Business Address is selected) -->
+        <div id="biz-name-group" class="form-group" style="display: none; background: rgba(37, 99, 235, 0.04); border: 1.5px dashed var(--primary-300); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px;">
+          <label class="form-label" for="business_name" style="font-weight: 700; color: var(--primary-800);">
+            🏢 Business / Company / Shop Name <span class="required" style="color: var(--error-600);">*</span>
+          </label>
+          <input type="text" id="business_name" name="business_name" class="form-control" placeholder="e.g. Al-Madina Traders or Nova Technologies Pvt Ltd">
+          <div class="form-text" style="color: var(--text-secondary); margin-top: 4px; font-size: 12px;">
+            For business addresses, ownership and Edit ID can be transferred to a new owner if business management changes, while keeping your 6-character Public Address ID permanent!
+          </div>
+        </div>
+
+        <!-- Compulsory Contact Person Name -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" for="recipient_name" style="font-weight: 700;">
+            👤 Contact Person Name <span class="required" style="color: var(--error-600);">*</span>
+          </label>
+          <input type="text" id="recipient_name" name="recipient_name" class="form-control" placeholder="e.g. Muhammad Bilal" required>
+          <div class="form-text" style="color: var(--text-secondary); margin-top: 4px; font-size: 12px;">
+            Compulsory for both personal and business addresses. This is the primary contact person for couriers and deliveries.
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label class="form-label" style="font-size: 15px; font-weight: 700; margin-bottom: 12px; display: block; color: var(--text-main);">
+            Select Delivery Reach (Two Options)
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            
+            <!-- Option 1: Local City Delivery -->
+            <div id="scope-local-card" onclick="toggleLocationScope('LOCAL')" class="reach-card reach-card-active">
+              <div class="reach-card-header">
+                <span class="reach-icon">🛵</span>
+                <span id="badge-local" class="reach-badge badge-active">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ACTIVE
+                </span>
+              </div>
+              <div class="reach-title">Local City Delivery</div>
+              <div class="reach-desc">
+                For fast intra-city courier delivery (within your city)
+              </div>
+            </div>
+
+            <!-- Option 2: Out of City / Worldwide -->
+            <div id="scope-intl-card" onclick="toggleLocationScope('INTERNATIONAL')" class="reach-card reach-card-inactive">
+              <div class="reach-card-header">
+                <span class="reach-icon">🌍</span>
+                <span id="badge-intl" class="reach-badge badge-inactive">
+                  INACTIVE
+                </span>
+              </div>
+              <div class="reach-title">Out of City / Worldwide</div>
+              <div class="reach-desc">
+                For shipping outside your city or anywhere in the whole world
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Phone Number for Delivery with Enable/Disable Toggle -->
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px;">
+            <label for="enable_address_phone" style="font-weight: 700; font-size: 14px; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0;">
+              <input type="checkbox" id="enable_address_phone" name="enable_phone" onchange="toggleAddressPhone()" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary-600);">
+              Enable Phone Number for Delivery Couriers
+            </label>
+            <span id="addr-phone-status-badge" class="badge" style="background: var(--surface-secondary); color: var(--text-muted); font-size: 11px;">Disabled</span>
+          </div>
+          <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 10px 0; line-height: 1.4;">
+            Riders and couriers sometimes require a contact number to coordinate parcel drop-off.
+          </p>
+          <div id="addr-phone-container" style="display: none;">
+            <input type="tel" id="contact_phone" name="phone" class="form-control" placeholder="e.g. +92 300 1234567" disabled>
+            <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">Riders will be able to contact this number if enabled</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="visibility">Visibility</label>
+          <select id="visibility" name="visibility" class="form-control">
+            <option value="PUBLIC" selected>Public (Resolvable by anyone with the link)</option>
+            <option value="PRIVATE">Private (Restricted to account owner)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 28px;">
+          <button type="button" class="btn btn-primary" onclick="nextStep()">
+            Next: Location Details →
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Step 2: Location Information -->
+      <div id="step-2" style="display: none;">
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 18px;">Step 2: Country, Region & City</h2>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="country">Country <span class="required">*</span></label>
+            <input type="text" id="country" name="country" value="Pakistan" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="country_code">Country Code</label>
+            <input type="text" id="country_code" name="country_code" value="PK" class="form-control" maxlength="4">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="city">City <span class="required">*</span></label>
+            <input type="text" id="city" name="city" class="form-control" required placeholder="e.g. Taunsa Sharif, Lahore, London">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="province_state">Province / State / Region</label>
+            <input type="text" id="province_state" name="province_state" class="form-control" placeholder="e.g. Punjab, California">
+          </div>
+        </div>
+
+        <!-- Conditional Pakistan-specific fields -->
+        <div id="local-specific-fields" class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="district">District</label>
+            <input type="text" id="district" name="district" class="form-control" placeholder="e.g. Dera Ghazi Khan">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tehsil">Tehsil</label>
+            <input type="text" id="tehsil" name="tehsil" class="form-control" placeholder="e.g. Taunsa Sharif">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="region_division">Division</label>
+            <input type="text" id="region_division" name="region_division" class="form-control" placeholder="e.g. D.G. Khan Division">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="town">Town / Locality</label>
+            <input type="text" id="town" name="town" class="form-control" placeholder="e.g. Model Town">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 28px;">
+          <button type="button" class="btn btn-secondary" onclick="prevStep()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="nextStep()">Next: Street Details →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Street Information & Coordinates -->
+      <div id="step-3" style="display: none;">
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 18px;">Step 3: Street, House & GPS</h2>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="house_number">House / Plot Number</label>
+            <input type="text" id="house_number" name="house_number" class="form-control" placeholder="e.g. 25 or 14-B">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="street">Street / Lane</label>
+            <input type="text" id="street" name="street" class="form-control" placeholder="e.g. Street 4">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="building">Building / Plaza (Optional)</label>
+            <input type="text" id="building" name="building" class="form-control" placeholder="e.g. Al-Rehman Plaza">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="landmark">Landmark</label>
+            <input type="text" id="landmark" name="landmark" class="form-control" placeholder="e.g. Near Main Market, Opp. City Park">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="postal_code">Postal Code (Optional)</label>
+          <input type="text" id="postal_code" name="postal_code" class="form-control" placeholder="e.g. 32100">
+        </div>
+
+        <!-- Interactive Google Map Pin Section: Optional, but strongly recommended -->
+        <div style="margin-top: 24px; padding: 22px; border-radius: var(--radius-lg); background: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(16, 185, 129, 0.06) 100%); border: 2px dashed var(--primary-400);">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <div style="display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 15px; color: var(--text-main);">
+                <span>📍 Pin Location on Google Map</span>
+                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; font-size: 11px; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3);">
+                  Optional, but Strongly Recommended ⭐
+                </span>
+              </div>
+              <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 0 0; line-height: 1.45;">
+                Click anywhere on the map or drag the pin to mark your exact doorstep. Couriers will use this pin for turn-by-turn Google Maps driving navigation!
+              </p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="fetchCurrentGps()" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 16 12 12 8"></polygon></svg>
+              <span>Detect My GPS Location</span>
+            </button>
+          </div>
+
+          <!-- Interactive Map Container -->
+          <div id="address-map-picker" style="height: 300px; width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow: hidden; background: #f1f5f9; position: relative;">
+            <div id="map-loading-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 13px;">
+              <span>Loading interactive map picker...</span>
+            </div>
+          </div>
+
+          <!-- Real-time Pin Details & Direct Google Maps Links -->
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 12px; font-size: 12px;">
+            <div>
+              <span style="color: var(--text-muted);">Pinned Coordinates:</span>
+              <strong id="pinned-coords-display" style="font-family: var(--font-mono); color: var(--primary-700); margin-left: 4px;">
+                None selected (Click map to drop pin)
+              </strong>
+            </div>
+            <div id="google-maps-preview-links" style="display: none; align-items: center; gap: 10px;">
+              <a id="link-gmaps-view" href="#" target="_blank" rel="noopener" style="color: var(--primary-600); font-weight: 600; text-decoration: underline;">
+                🗺️ View on Google Maps ↗
+              </a>
+              <span>&bull;</span>
+              <a id="link-gmaps-directions" href="#" target="_blank" rel="noopener" style="color: var(--success-600); font-weight: 700; text-decoration: underline;">
+                🚗 Test Driving Route ↗
+              </a>
+            </div>
+          </div>
+
+          <div class="form-grid-2" style="margin-top: 14px; margin-bottom: 0;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="latitude" style="font-size: 11px;">Latitude</label>
+              <input type="number" step="any" id="latitude" name="latitude" class="form-control" placeholder="e.g. 30.7031" oninput="onCoordInputChange()" style="font-size: 12px; height: 36px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="longitude" style="font-size: 11px;">Longitude</label>
+              <input type="number" step="any" id="longitude" name="longitude" class="form-control" placeholder="e.g. 70.6500" oninput="onCoordInputChange()" style="font-size: 12px; height: 36px;">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 28px;">
+          <button type="button" class="btn btn-secondary" onclick="prevStep()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="nextStep()">Next: Destination Link →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Destination & Redirect -->
+      <div id="step-4" style="display: none;">
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 18px;">Step 4: Smart Redirect Destination</h2>
+
+        <div class="form-group">
+          <label class="form-label" for="destination_url">Destination Website URL (Optional &mdash; Defaults to Google Maps Driving Directions)</label>
+          <input type="url" id="destination_url" name="destination_url" class="form-control" 
+                 placeholder="Leave blank for automatic Google Maps Driving Navigation, or enter custom URL">
+          <div class="form-text">
+            If left empty, visitors and delivery couriers will automatically be directed to turn-by-turn Google Maps driving navigation!
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Redirect Delay (Seconds)</label>
+          <input type="hidden" id="redirect_seconds" name="redirect_seconds" value="3">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            {% for s in [0, 1, 2, 3, 5, 10, 15, 30] %}
+            <button type="button" class="btn btn-secondary btn-sm delay-chip {% if s == 3 %}selected{% endif %}" 
+                    data-seconds="{{ s }}" onclick="setRedirectDelay({{ s }})">
+              {{ s }}s
+            </button>
+            {% endfor %}
+          </div>
+          <div class="form-text">Default recommended delay is 3 seconds.</div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 28px;">
+          <button type="button" class="btn btn-secondary" onclick="prevStep()">← Back</button>
+          <button type="button" class="btn btn-primary" onclick="nextStep()">Review & Submit →</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Review & Submit -->
+      <div id="step-5" style="display: none;">
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 18px;">Step 5: Review Your Smart Address</h2>
+
+        <div style="background: var(--surface-secondary); padding: 20px; border-radius: var(--radius-lg); margin-bottom: 24px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 13px;">
+            <div><strong>Address Category:</strong> <span id="rev-type" style="font-weight: 700; color: var(--primary-700);"></span></div>
+            <div><strong>Delivery Reach:</strong> <span id="rev-scope" style="font-weight: 700; color: var(--primary-700);"></span></div>
+            <div id="rev-biz-row" style="grid-column: 1 / -1; display: none;"><strong>Business / Company:</strong> <span id="rev-bizname" style="font-weight: 700; color: var(--text-primary);"></span></div>
+            <div><strong>Contact Person:</strong> <span id="rev-recipient" style="font-weight: 600;"></span></div>
+            <div><strong>City:</strong> <span id="rev-city"></span></div>
+            <div><strong>Country:</strong> <span id="rev-country"></span></div>
+            <div><strong>Building / Street:</strong> <span id="rev-housestreet"></span></div>
+            <div style="grid-column: 1 / -1;"><strong>Destination:</strong> <span id="rev-destination"></span></div>
+            <div><strong>Redirect Delay:</strong> <span id="rev-delay"></span></div>
+          </div>
+        </div>
+
+        <div style="background: rgba(37, 99, 235, 0.08); border-radius: var(--radius-md); padding: 14px; margin-bottom: 24px; font-size: 13px; color: var(--primary-800);">
+          ⚡ A unique <strong>6-character Public Address ID (LLDDYY)</strong> will be generated automatically upon submission.
+        </div>
+
+        <div style="display: flex; justify-content: space-between;">
+          <button type="button" class="btn btn-secondary" onclick="prevStep()">← Back</button>
+          <button type="submit" class="btn btn-gradient btn-lg">
+            Create Address & Generate Public ID
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/static/js/address_form.js?v=2.3"></script>
+<script>
+function selectAddressCategory(cat) {
+  const typeInput = document.getElementById("address_type");
+  const catPersonalCard = document.getElementById("cat-personal-card");
+  const catBusinessCard = document.getElementById("cat-business-card");
+  const badgePersonal = document.getElementById("badge-cat-personal");
+  const badgeBusiness = document.getElementById("badge-cat-business");
+  const bizGroup = document.getElementById("biz-name-group");
+  const bizInput = document.getElementById("business_name");
+
+  if (typeInput) typeInput.value = cat;
+
+  const checkSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+  if (cat === "PERSONAL") {
+    if (catPersonalCard) {
+      catPersonalCard.classList.add("reach-card-active");
+      catPersonalCard.classList.remove("reach-card-inactive");
+    }
+    if (catBusinessCard) {
+      catBusinessCard.classList.remove("reach-card-active");
+      catBusinessCard.classList.add("reach-card-inactive");
+    }
+    if (badgePersonal) {
+      badgePersonal.className = "reach-badge badge-active";
+      badgePersonal.innerHTML = checkSvg + 'ACTIVE';
+    }
+    if (badgeBusiness) {
+      badgeBusiness.className = "reach-badge badge-inactive";
+      badgeBusiness.textContent = 'INACTIVE';
+    }
+    if (bizGroup) bizGroup.style.display = "none";
+    if (bizInput) bizInput.removeAttribute("required");
+  } else {
+    if (catBusinessCard) {
+      catBusinessCard.classList.add("reach-card-active");
+      catBusinessCard.classList.remove("reach-card-inactive");
+    }
+    if (catPersonalCard) {
+      catPersonalCard.classList.remove("reach-card-active");
+      catPersonalCard.classList.add("reach-card-inactive");
+    }
+    if (badgeBusiness) {
+      badgeBusiness.className = "reach-badge badge-active";
+      badgeBusiness.innerHTML = checkSvg + 'ACTIVE';
+    }
+    if (badgePersonal) {
+      badgePersonal.className = "reach-badge badge-inactive";
+      badgePersonal.textContent = 'INACTIVE';
+    }
+    if (bizGroup) {
+      bizGroup.style.display = "block";
+      if (bizInput) {
+        bizInput.setAttribute("required", "required");
+        bizInput.focus();
+      }
+    }
+  }
+}
+window.selectAddressCategory = selectAddressCategory;
+<script>
+function toggleAddressPhone() {
+  const checkbox = document.getElementById('enable_address_phone');
+  const container = document.getElementById('addr-phone-container');
+  const input = document.getElementById('contact_phone');
+  const badge = document.getElementById('addr-phone-status-badge');
+
+  if (checkbox.checked) {
+    container.style.display = 'block';
+    input.disabled = false;
+    input.focus();
+    badge.textContent = 'Enabled';
+    badge.style.background = 'var(--success-50)';
+    badge.style.color = 'var(--success-600)';
+    badge.style.border = '1px solid rgba(16, 185, 129, 0.2)';
+  } else {
+    container.style.display = 'none';
+    input.disabled = true;
+    input.value = '';
+    badge.textContent = 'Disabled';
+    badge.style.background = 'var(--surface-secondary)';
+    badge.style.color = 'var(--text-muted)';
+    badge.style.border = 'none';
+  }
+}
+</script>
+<style>
+/* Delivery Reach High-Contrast Styles */
+.reach-card {
+  position: relative;
+  cursor: pointer;
+  padding: 22px;
+  border-radius: var(--radius-lg, 14px);
+  text-align: left;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+/* ACTIVATED: High contrast bold royal blue outline, subtle ice blue surface, dark text, drop shadow */
+.reach-card.reach-card-active {
+  border: 2.5px solid #2563eb !important;
+  background: #f0f7ff !important;
+  box-shadow: 0 10px 24px -4px rgba(37, 99, 235, 0.22), 0 4px 6px -2px rgba(37, 99, 235, 0.1) !important;
+  transform: translateY(-2px);
+}
+.reach-card.reach-card-active .reach-title {
+  color: #0f172a !important;
+  font-weight: 800;
+  font-size: 16px;
+}
+.reach-card.reach-card-active .reach-desc {
+  color: #1e3a8a !important;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+.reach-card.reach-card-active .reach-icon {
+  font-size: 32px;
+  filter: none;
+  opacity: 1;
+}
+
+/* DEACTIVATED: Clean muted slate, high-contrast difference, lower prominence */
+.reach-card.reach-card-inactive {
+  border: 2px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
+  transform: none;
+  opacity: 0.72;
+}
+.reach-card.reach-card-inactive:hover {
+  opacity: 0.95;
+  border-color: #94a3b8 !important;
+  background: #ffffff !important;
+  transform: translateY(-1px);
+}
+.reach-card.reach-card-inactive .reach-title {
+  color: #64748b !important;
+  font-weight: 600;
+  font-size: 16px;
+}
+.reach-card.reach-card-inactive .reach-desc {
+  color: #94a3b8 !important;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+.reach-card.reach-card-inactive .reach-icon {
+  font-size: 32px;
+  filter: grayscale(80%);
+  opacity: 0.55;
+}
+
+/* Reach Header & Badges */
+.reach-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.reach-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+.badge-active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.35);
+}
+.badge-inactive {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.delay-chip.selected {
+  background: var(--primary-600) !important;
+  color: white !important;
+  border-color: var(--primary-600) !important;
+}
+</style>
+{% endblock %}
+

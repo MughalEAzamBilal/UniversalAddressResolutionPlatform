@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Link Management | Universal Address Admin{% endblock %}
+
+{% block content %}
+<div>
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <h1 class="page-title">Smart Link Management</h1>
+      <p class="page-description" style="margin-bottom: 0;">Dedicated URL redirection and destination monitor.</p>
+    </div>
+  </div>
+
+  <!-- Links Table -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="table-container" style="border: none; border-radius: 0;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Public ID</th>
+            <th>Destination URL</th>
+            <th>Physical Address</th>
+            <th>Owner</th>
+            <th>Delay</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for addr in addresses %}
+          <tr>
+            <td>
+              <a href="/address/{{ addr.public_id }}/view" class="public-id-badge" style="text-decoration: none;">
+                {{ addr.public_id }}
+              </a>
+            </td>
+            <td>
+              {% if addr.destination_url %}
+              <a href="{{ addr.destination_url }}" target="_blank" rel="noopener" style="font-family: var(--font-mono); font-size: 12px; color: var(--primary-600);">
+                {{ addr.destination_url[:28] }}...
+              </a>
+              {% else %}
+              <span style="font-size: 12px; color: var(--text-muted);">None</span>
+              {% endif %}
+            </td>
+            <td style="max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px;">
+              {{ addr.address_text }}
+            </td>
+            <td>
+              <span style="font-size: 13px; font-weight: 600;">{{ addr.user.username if addr.user else 'User #' ~ addr.user_id }}</span>
+            </td>
+            <td style="font-size: 13px;">{{ addr.redirect_seconds }}s</td>
+            <td>
+              {% if addr.is_active %}
+              <span class="badge badge-active">Active</span>
+              {% else %}
+              <span class="badge badge-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+              {{ addr.created_at.strftime('%b %d, %Y') }}
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('{{ base_url }}/{{ addr.public_id }}', 'Public link copied!')" title="Copy Link">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+              <a href="/address/{{ addr.public_id }}/view" class="btn btn-secondary btn-sm" title="View">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </a>
+              <form action="/admin/addresses/{{ addr.public_id }}/toggle-status" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-secondary btn-sm" title="Toggle Status">
+                  {% if addr.is_active %}Pause{% else %}Activate{% endif %}
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

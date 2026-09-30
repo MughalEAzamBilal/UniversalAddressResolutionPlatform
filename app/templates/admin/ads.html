@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Ads Management | Admin Portal{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
+        <a href="/admin">Administration</a> / Advertising
+      </div>
+      <h1 class="page-title" style="display: flex; align-items: center; gap: 10px; margin: 0;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        Ads & Monetization Management
+      </h1>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+        Configure Google AdSense snippets, banner placements, and track live impression performance across the platform.
+      </p>
+    </div>
+
+    <button type="button" class="btn btn-primary" onclick="toggleAddModal(true)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      Create New Ad
+    </button>
+  </div>
+
+  <!-- Telemetry / Stats Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px;">
+    
+    <div class="card" style="padding: 20px;">
+      <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Total Advertisements</div>
+      <div style="font-size: 32px; font-weight: 800; color: var(--primary-700);">{{ stats.total_ads }}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Configured across platform</div>
+    </div>
+
+    <div class="card" style="padding: 20px;">
+      <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Active Ads</div>
+      <div style="font-size: 32px; font-weight: 800; color: var(--success-600);">{{ stats.active_ads }}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Live and rendering</div>
+    </div>
+
+    <div class="card" style="padding: 20px;">
+      <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Total Impressions</div>
+      <div style="font-size: 32px; font-weight: 800; color: var(--text-primary);">{{ stats.total_impressions }}</div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Views across visitor sessions</div>
+    </div>
+
+    <div class="card" style="padding: 20px;">
+      <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Placements In Use</div>
+      <div style="font-size: 32px; font-weight: 800; color: #8b5cf6;">
+        {{ stats.placements.values() | select("gt", 0) | list | length }} / {{ stats.placements|length }}
+      </div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Active position slots</div>
+    </div>
+
+  </div>
+
+  <!-- Placement Breakdown Pills -->
+  <div class="card" style="padding: 16px 20px; margin-bottom: 24px;">
+    <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">
+      Placements Status & Distribution:
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+      {% for plc, count in stats.placements.items() %}
+      <span style="background: var(--surface-secondary); border: 1px solid var(--border); padding: 6px 12px; border-radius: var(--radius-full); font-size: 12px; display: inline-flex; align-items: center; gap: 8px;">
+        <span style="font-weight: 700; color: var(--text-main);">{{ plc }}</span>
+        <span class="badge {% if count > 0 %}badge-active{% else %}badge-inactive{% endif %}" style="padding: 2px 6px; font-size: 10px;">
+          {{ count }} ads
+        </span>
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Ads Table -->
+  <div class="card" style="overflow: hidden;">
+    <div class="card-header" style="padding: 20px 24px; border-bottom: 1px solid var(--border);">
+      <h2 class="card-title" style="font-size: 16px;">All Configured Ads</h2>
+      <p class="card-subtitle">Manage scripts, direct sponsor banners, and active display toggles</p>
+    </div>
+
+    {% if ads %}
+    <div style="overflow-x: auto;">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; color: var(--text-muted); text-align: left;">
+            <th style="padding: 12px 20px;">Title & Type</th>
+            <th style="padding: 12px 20px;">Placement</th>
+            <th style="padding: 12px 20px;">Status</th>
+            <th style="padding: 12px 20px;">Stats</th>
+            <th style="padding: 12px 20px;">Created</th>
+            <th style="padding: 12px 20px; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ad in ads %}
+          <tr style="border-bottom: 1px solid var(--border); font-size: 13px;">
+            <td style="padding: 16px 20px;">
+              <div style="font-weight: 700; color: var(--text-main);">{{ ad.title }}</div>
+              <span style="font-size: 11px; font-family: var(--font-mono); color: var(--primary-600); background: var(--primary-50); padding: 2px 6px; border-radius: 4px;">
+                {{ ad.ad_type }}
+              </span>
+            </td>
+            <td style="padding: 16px 20px;">
+              <span class="badge" style="background: var(--surface-secondary); font-family: var(--font-mono); font-size: 11px; font-weight: 600;">
+                {{ ad.placement }}
+              </span>
+            </td>
+            <td style="padding: 16px 20px;">
+              {% if ad.is_active %}
+              <span class="badge badge-active">Active</span>
+              {% else %}
+              <span class="badge badge-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td style="padding: 16px 20px;">
+              <div style="font-size: 12px; color: var(--text-secondary);">
+                <strong>{{ ad.impressions }}</strong> views &bull; <strong>{{ ad.clicks }}</strong> clicks
+              </div>
+            </td>
+            <td style="padding: 16px 20px; color: var(--text-muted); font-size: 12px;">
+              {{ ad.created_at.strftime('%Y-%m-%d') }}
+            </td>
+            <td style="padding: 16px 20px; text-align: right;">
+              <div style="display: inline-flex; gap: 8px;">
+                <form action="/admin/ads/{{ ad.id }}/toggle" method="post" style="display: inline;">
+                  <button type="submit" class="btn btn-secondary btn-sm" title="Toggle Active">
+                    {% if ad.is_active %}Pause{% else %}Activate{% endif %}
+                  </button>
+                </form>
+                <form action="/admin/ads/{{ ad.id }}/delete" method="post" style="display: inline;" onsubmit="return confirm('Delete this ad permanently?');">
+                  <button type="submit" class="btn btn-danger btn-sm" title="Delete Ad">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 48px 24px; color: var(--text-muted);">
+      <div style="font-size: 32px; margin-bottom: 12px;">📢</div>
+      <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">No Advertisements Yet</h3>
+      <p style="font-size: 13px; max-width: 420px; margin: 0 auto 16px;">
+        Click the button below to add your first Google AdSense code or sponsor banner.
+      </p>
+      <button type="button" class="btn btn-primary" onclick="toggleAddModal(true)">
+        Add Advertisement
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Modal: Create Ad -->
+<div id="add-ad-modal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;">
+  <div class="modal-card" style="background: var(--surface); border-radius: var(--radius-lg); max-width: 580px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 28px; box-shadow: var(--shadow-xl); border: 1px solid var(--border);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h2 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-main);">Add New Advertisement</h2>
+      <button type="button" onclick="toggleAddModal(false)" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted);">&times;</button>
+    </div>
+
+    <form action="/admin/ads/create" method="post">
+      
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" for="title">Ad Title / Description <span style="color: var(--error-500);">*</span></label>
+        <input type="text" id="title" name="title" class="form-control" required placeholder="e.g. Google AdSense - Top Banner">
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="placement">Placement Location <span style="color: var(--error-500);">*</span></label>
+          <select id="placement" name="placement" class="form-control" required>
+            {% for p in placements %}
+            <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="ad_type">Ad Type <span style="color: var(--error-500);">*</span></label>
+          <select id="ad_type" name="ad_type" class="form-control" required onchange="onTypeChange(this.value)">
+            {% for t in types %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Code Snippet (for Google AdSense / Custom HTML) -->
+      <div id="code-snippet-group" class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" for="code_snippet">
+          Google AdSense / HTML Script Code
+          <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(Paste &lt;script&gt; / &lt;ins&gt; tags here)</span>
+        </label>
+        <textarea id="code_snippet" name="code_snippet" class="form-control" rows="5" style="font-family: var(--font-mono); font-size: 12px;" placeholder="<script async src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-...' crossorigin='anonymous'></script>&#10;<ins class='adsbygoogle' ...></ins>&#10;<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>"></textarea>
+      </div>
+
+      <!-- Banner Image Fields (optional) -->
+      <div id="banner-group" style="display: none; margin-bottom: 16px;">
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" for="image_url">Banner Image URL</label>
+          <input type="url" id="image_url" name="image_url" class="form-control" placeholder="https://example.com/banner.png">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="target_url">Target Destination Link</label>
+          <input type="url" id="target_url" name="target_url" class="form-control" placeholder="https://advertiser-website.com">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 24px;">
+        <label class="form-label" for="display_order">Display Priority (Order)</label>
+        <input type="number" id="display_order" name="display_order" class="form-control" value="0">
+        <span style="font-size: 11px; color: var(--text-muted);">Lower numbers render first.</span>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="toggleAddModal(false)">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save & Publish Ad</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAddModal(show) {
+  const modal = document.getElementById('add-ad-modal');
+  modal.style.display = show ? 'flex' : 'none';
+}
+
+function onTypeChange(type) {
+  const codeGroup = document.getElementById('code-snippet-group');
+  const bannerGroup = document.getElementById('banner-group');
+  if (type === 'BANNER_IMAGE') {
+    codeGroup.style.display = 'none';
+    bannerGroup.style.display = 'block';
+  } else {
+    codeGroup.style.display = 'block';
+    bannerGroup.style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

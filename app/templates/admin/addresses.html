@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}All Addresses Catalog | Universal Address Admin{% endblock %}
+
+{% block content %}
+<div>
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <h1 class="page-title">Global Addresses Catalog</h1>
+      <p class="page-description" style="margin-bottom: 0;">Comprehensive administrative registry of all short address identifiers.</p>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="card" style="padding: 16px 20px; margin-bottom: 24px;">
+    <form action="/admin/addresses" method="get" style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 240px; position: relative;">
+        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </span>
+        <input type="text" name="search" value="{{ search or '' }}" placeholder="Search Public ID, city, user, address..." class="form-control" style="padding-left: 36px;">
+      </div>
+
+      <input type="text" name="city" value="{{ city or '' }}" placeholder="Filter by City" class="form-control" style="width: auto; min-width: 140px;">
+      <input type="text" name="country" value="{{ country or '' }}" placeholder="Filter by Country" class="form-control" style="width: auto; min-width: 140px;">
+
+      <button type="submit" class="btn btn-secondary btn-sm" style="padding: 10px 18px;">Filter</button>
+      {% if search or city or country %}
+      <a href="/admin/addresses" class="btn btn-secondary btn-sm" style="padding: 10px 14px;">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Addresses Table -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="table-container" style="border: none; border-radius: 0;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Public ID</th>
+            <th>Type</th>
+            <th>Location</th>
+            <th>Destination</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for addr in addresses %}
+          <tr>
+            <td>
+              <a href="/address/{{ addr.public_id }}/view" class="public-id-badge" style="text-decoration: none;">
+                {{ addr.public_id }}
+              </a>
+            </td>
+            <td>
+              <span class="badge badge-delivery">{{ addr.address_type }}</span>
+            </td>
+            <td>
+              <div style="font-weight: 600; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ addr.address_text }}
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted);">{{ addr.city }}, {{ addr.country }}</div>
+            </td>
+            <td>
+              {% if addr.destination_url %}
+              <span style="font-size: 12px; color: var(--text-secondary);">{{ addr.destination_url[:22] }}...</span>
+              {% else %}
+              <span style="font-size: 12px; color: var(--text-muted);">None</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if addr.is_active %}
+              <span class="badge badge-active">Active</span>
+              {% else %}
+              <span class="badge badge-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">{{ addr.created_at.strftime('%b %d, %Y') }}</td>
+            <td style="text-align: right; white-space: nowrap;">
+              <form action="/admin/addresses/{{ addr.public_id }}/toggle-status" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-secondary btn-sm" title="Toggle Active">
+                  {% if addr.is_active %}Pause{% else %}Activate{% endif %}
+                </button>
+              </form>
+              <a href="/{{ addr.public_id }}" target="_blank" class="btn btn-secondary btn-sm" title="Open Resolver">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}Universal Address - One Address. One Smart Link.{% endblock %}
+
+{% block content %}
+<div style="max-width: 1160px; margin: 0 auto; padding: 20px 0 80px;">
+
+  <!-- Hero Section -->
+  <section style="text-align: center; padding: 50px 0 30px;">
+    <div class="badge badge-public" style="margin-bottom: 18px; padding: 8px 18px; font-size: 13px; font-weight: 700; border-radius: var(--radius-full);">
+      ✨ Modern Location & Physical Address Infrastructure
+    </div>
+    <h1 style="font-size: 50px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.15; margin-bottom: 20px; color: var(--text-primary);">
+      One Address.<br>
+      <span style="background: var(--hero-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">One Smart Link.</span>
+    </h1>
+    <p style="font-size: 18px; color: var(--text-secondary); max-width: 680px; margin: 0 auto 36px; line-height: 1.6;">
+      Convert lengthy, complex physical addresses into compact 6-character <strong>Public Address IDs</strong> (e.g. <code>ab1226</code>) and smart URLs that automatically copy to clipboard and trigger 1-tap Google Maps turn-by-turn driving navigation.
+    </p>
+
+    <!-- Quick Resolve Interactive Bar -->
+    <div style="max-width: 540px; margin: 0 auto 36px;">
+      <form action="/lookup" method="get" onsubmit="event.preventDefault(); const id = document.getElementById('quick-resolve-id').value.trim(); if(id) window.location.href='/'+id;" 
+            style="display: flex; gap: 8px; background: var(--surface); padding: 8px; border-radius: var(--radius-xl); border: 2px solid var(--primary-300); box-shadow: var(--shadow-md);">
+        <div style="display: flex; align-items: center; padding-left: 14px; color: var(--primary-600);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        </div>
+        <input type="text" id="quick-resolve-id" placeholder="Enter 6-char Public ID (e.g. ab1226)" required
+               style="flex: 1; border: none; outline: none; background: transparent; font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: var(--text-primary); text-transform: lowercase;">
+        <button type="submit" class="btn btn-primary" style="border-radius: var(--radius-lg); padding: 12px 24px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+          Resolve
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </form>
+    </div>
+
+    <!-- Main Call to Actions -->
+    <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px;">
+      <a href="/address/new" class="btn btn-gradient btn-lg" style="font-weight: 700; padding: 14px 28px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Create an Address (Free)
+      </a>
+      <a href="/edit" class="btn btn-secondary btn-lg" style="font-weight: 700; padding: 14px 28px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Edit ID Portal
+      </a>
+    </div>
+
+    <!-- Active Sponsored / Ads Banner (Home Content) -->
+    {% if ads %}
+    <div style="max-width: 760px; margin: 0 auto 30px; text-align: center;">
+      {% for ad in ads %}
+      <div style="background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px; overflow: hidden;">
+        {% if ad.ad_type == 'BANNER_IMAGE' and ad.image_url %}
+          <a href="{{ ad.target_url or '#' }}" target="_blank" rel="noopener sponsored">
+            <img src="{{ ad.image_url }}" alt="{{ ad.title }}" style="max-width: 100%; height: auto; border-radius: 6px;">
+          </a>
+        {% elif ad.code_snippet %}
+          {{ ad.code_snippet | safe }}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </section>
+
+  <!-- Section 1: Who Can Use Universal Address? -->
+  <section style="margin-top: 40px; padding: 40px 0;">
+    <div style="text-align: center; margin-bottom: 36px;">
+      <div class="badge" style="background: var(--primary-100); color: var(--primary-800); font-weight: 700; margin-bottom: 10px;">
+        Universal Adaptability
+      </div>
+      <h2 style="font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-main);">
+        Who Can Use Universal Address?
+      </h2>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+        From private individuals to cross-border delivery fleets, our short public identifier standardizes location discovery for everyone.
+      </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+      
+      <!-- Card 1: Individuals & Households -->
+      <div class="card card-hover" style="padding: 28px; border-top: 4px solid var(--primary-500);">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="font-size: 30px;">🏡</div>
+          <div>
+            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-main);">Individuals & Families</h3>
+            <span style="font-size: 12px; color: var(--primary-600); font-weight: 600;">Personal Doorstep Location</span>
+          </div>
+        </div>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Never spend 10 minutes giving phone directions to delivery drivers again. Pin your building entrance, generate your 6-character Public ID, and receive food, courier packages, and guests seamlessly.
+        </p>
+      </div>
+
+      <!-- Card 2: Businesses & Commercial Stores -->
+      <div class="card card-hover" style="padding: 28px; border-top: 4px solid #8b5cf6;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="font-size: 30px;">🏢</div>
+          <div>
+            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-main);">Businesses & Corporates</h3>
+            <span style="font-size: 12px; color: #8b5cf6; font-weight: 600;">Commercial Offices, Stores & Clinics</span>
+          </div>
+        </div>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Display a clean, branded short URL on business cards, websites, and flyers. Even if company leadership or facility ownership changes, your Public ID and customer navigation links remain permanently stable.
+        </p>
+      </div>
+
+      <!-- Card 3: E-Commerce & Online Merchants -->
+      <div class="card card-hover" style="padding: 28px; border-top: 4px solid var(--success-500);">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="font-size: 30px;">📦</div>
+          <div>
+            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-main);">E-Commerce & Online Sellers</h3>
+            <span style="font-size: 12px; color: var(--success-600); font-weight: 600;">Zero-Misdelivery Logistics</span>
+          </div>
+        </div>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Eliminate lost shipments and return-to-origin courier costs caused by typos in customer addresses. Customers simply provide their 6-character ID, enabling automated order dispatch.
+        </p>
+      </div>
+
+      <!-- Card 4: Couriers & Delivery Fleets -->
+      <div class="card card-hover" style="padding: 28px; border-top: 4px solid #f59e0b;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="font-size: 30px;">🛵</div>
+          <div>
+            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-main);">Couriers & Delivery Fleets</h3>
+            <span style="font-size: 12px; color: #d97706; font-weight: 600;">Rider-First 1-Click Navigation</span>
+          </div>
+        </div>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Opening a link copies the complete delivery address instantly to the courier's clipboard and highlights a 1-tap Google Maps turn-by-turn driving button formatted for delivery vehicles.
+        </p>
+      </div>
+
+      <!-- Card 5: Venues, Events & Landmarks -->
+      <div class="card card-hover" style="padding: 28px; border-top: 4px solid #ec4899;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="font-size: 30px;">📍</div>
+          <div>
+            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-main);">Venues, Halls & Events</h3>
+            <span style="font-size: 12px; color: #db2777; font-weight: 600;">Precise Guest Directing</span>
+          </div>
+        </div>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Weddings, expos, tourist landmarks, and conference centers can pin exact drop-off points, parking gates, or building portals without relying on ambiguous street names.
+        </p>
+      </div>
+
+      <!-- Card 6: Property Managers & Renters -->
+      <div class="card card-hover" style="padding: 28px; border-top: 4px solid #06b6d4;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div style="font-size: 30px;">🔑</div>
+          <div>
+            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-main);">Property Owners & Tenants</h3>
+            <span style="font-size: 12px; color: #0891b2; font-weight: 600;">Move Without Changing Links</span>
+          </div>
+        </div>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Renting a new apartment? Update your physical address in 30 seconds using your secret Edit ID. Your Public ID and printed QR codes stay valid forever!
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Section 2: Platform Core Benefits -->
+  <section style="margin-top: 30px; padding: 40px 0;">
+    <div style="text-align: center; margin-bottom: 36px;">
+      <div class="badge" style="background: var(--success-50); color: var(--success-700); font-weight: 700; margin-bottom: 10px;">
+        Core Value & Architectural Features
+      </div>
+      <h2 style="font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-main);">
+        Key Benefits & Capabilities
+      </h2>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+        Why thousands of users and enterprises trust the Universal Address Resolution Platform.
+      </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+      
+      <div class="card" style="padding: 26px;">
+        <div class="stat-icon icon-blue" style="margin-bottom: 16px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">6-Character Stable ID</h3>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Generates human-friendly 6-character public IDs following staged deterministic capacity (e.g. <code>ab1226</code>), with canonical case-insensitive resolution.
+        </p>
+      </div>
+
+      <div class="card" style="padding: 26px;">
+        <div class="stat-icon icon-green" style="margin-bottom: 16px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+        </div>
+        <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Auto-Copy & 1-Tap Driving Directions</h3>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Visiting an address automatically copies the text to clipboard and reveals a pulsing Google Maps navigation button leading directly to coordinates.
+        </p>
+      </div>
+
+      <div class="card" style="padding: 26px;">
+        <div class="stat-icon icon-teal" style="margin-bottom: 16px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Zero Passwords & 100% Privacy</h3>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          No email sign-up fatigue. Addresses are secured by a secret 13-character Edit ID salted and hashed with Argon2id, with rate-limiting lockout protection.
+        </p>
+      </div>
+
+      <div class="card" style="padding: 26px;">
+        <div class="stat-icon icon-orange" style="margin-bottom: 16px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        </div>
+        <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Permanent Link Stability</h3>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Update your house, street, city, or destination GPS coordinates as often as you want. Your Public ID and smart links remain unchanged forever.
+        </p>
+      </div>
+
+      <div class="card" style="padding: 26px;">
+        <div class="stat-icon icon-purple" style="margin-bottom: 16px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        </div>
+        <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Personal & Business Address Modes</h3>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Full support for individual homes as well as commercial enterprises, complete with business ownership transfer and contact person verification.
+        </p>
+      </div>
+
+      <div class="card" style="padding: 26px;">
+        <div class="stat-icon icon-indigo" style="margin-bottom: 16px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        </div>
+        <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Dual Reach Scopes</h3>
+        <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+          Choose between Local City Delivery (optimized for quick food/parcel couriers) and Out of City / Worldwide (optimized for domestic freight and international shipping).
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Section 3: How It Works in 3 Steps -->
+  <section style="margin-top: 30px; padding: 40px 0; background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--border); padding: 48px 36px;">
+    <div style="text-align: center; margin-bottom: 36px;">
+      <h2 style="font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-main);">
+        How It Works in 3 Simple Steps
+      </h2>
+      <p style="font-size: 14px; color: var(--text-secondary);">No software installation or account creation needed.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; text-align: center;">
+      <div>
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--primary-100); color: var(--primary-800); font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+          1
+        </div>
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Create Your 13-Char Edit ID</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+          Select your initials, CNIC ending, and birth year. The system generates your private 13-character editing key.
+        </p>
+      </div>
+
+      <div>
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--primary-100); color: var(--primary-800); font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+          2
+        </div>
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Pin Doorstep & Save</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+          Enter your address, select Personal or Business, and pin your precise doorstep coordinates on the interactive map.
+        </p>
+      </div>
+
+      <div>
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--primary-100); color: var(--primary-800); font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+          3
+        </div>
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Share Your 6-Char Link</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+          Share your smart link <code>{{ base_url }}/ab1226</code> on shopping carts, social media, delivery orders, or messaging apps.
+        </p>
+      </div>
+    </div>
+
+    <!-- Final Call to Action -->
+    <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--border);">
+      <a href="/address/new" class="btn btn-gradient btn-lg" style="font-weight: 800; padding: 14px 36px;">
+        Get Your Public Address ID Now &rarr;
+      </a>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}User Management | Universal Address Admin{% endblock %}
+
+{% block content %}
+<div>
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <h1 class="page-title">User Management</h1>
+      <p class="page-description" style="margin-bottom: 0;">Manage accounts, roles, access statuses, and security credentials.</p>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="card" style="padding: 16px 20px; margin-bottom: 24px;">
+    <form action="/admin/users" method="get" style="display: flex; gap: 14px; align-items: center;">
+      <div style="flex: 1; position: relative;">
+        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </span>
+        <input type="text" name="search" value="{{ search or '' }}" placeholder="Search username, email, full name..." class="form-control" style="padding-left: 36px;">
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm" style="padding: 10px 18px;">Search</button>
+      {% if search %}
+      <a href="/admin/users" class="btn btn-secondary btn-sm" style="padding: 10px 14px;">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Users Table -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="table-container" style="border: none; border-radius: 0;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">#{{ u.id }}</td>
+            <td><strong>{{ u.username }}</strong></td>
+            <td>{{ u.full_name }}</td>
+            <td style="font-size: 13px;">{{ u.email }}</td>
+            <td>
+              <span class="badge {% if u.role in ['SUPER_ADMIN', 'ADMIN'] %}badge-public{% else %}badge-inactive{% endif %}">
+                {{ u.role }}
+              </span>
+            </td>
+            <td>
+              {% if u.account_status == 'ACTIVE' %}
+              <span class="badge badge-active">Active</span>
+              {% else %}
+              <span class="badge badge-inactive">{{ u.account_status }}</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 12px; color: var(--text-muted);">{{ u.created_at.strftime('%b %d, %Y') }}</td>
+            <td style="text-align: right; white-space: nowrap;">
+              <form action="/admin/users/{{ u.id }}/toggle-status" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-secondary btn-sm" title="Toggle Status">
+                  {% if u.account_status == 'ACTIVE' %}Suspend{% else %}Activate{% endif %}
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

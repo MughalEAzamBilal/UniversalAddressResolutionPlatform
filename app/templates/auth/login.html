@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Administrator Sign-In | Universal Address{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 30px auto;">
+  
+  <!-- Address Owner Notice -->
+  <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid var(--primary-500); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-sm); text-align: center;">
+    <div style="font-size: 26px; margin-bottom: 6px;">🔑</div>
+    <h2 style="font-size: 16px; font-weight: 800; color: var(--primary-800); margin: 0 0 6px 0;">Looking to Edit Your Address?</h2>
+    <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 14px 0; line-height: 1.4;">
+      Addresses are managed exclusively via your private <strong>Edit ID</strong>. No email or password needed!
+    </p>
+    <a href="/edit" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+      Enter Your Edit ID &rarr;
+    </a>
+  </div>
+
+  <div class="card" style="padding: 32px;">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.01em; color: var(--text-main);">Administrator Sign-In</h1>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">For platform management and system moderation</p>
+    </div>
+
+    {% if error %}
+    <div style="background: var(--error-50); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--error-600); padding: 12px 14px; border-radius: var(--radius-md); font-size: 13px; margin-bottom: 20px;">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
+      
+      <div class="form-group">
+        <label class="form-label" for="username">Admin Username</label>
+        <input type="text" id="username" name="username" class="form-control" required autofocus placeholder="Admin username">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Admin Password</label>
+        <input type="password" id="password" name="password" class="form-control" required placeholder="••••••••">
+      </div>
+
+      <button type="submit" class="btn btn-secondary" style="width: 100%; padding: 12px; font-size: 14px; font-weight: 700; margin-top: 8px;">
+        Sign In as Administrator
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

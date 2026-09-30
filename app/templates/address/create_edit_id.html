@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}Create Edit ID Before Adding Address | Universal Address{% endblock %}
+
+{% block content %}
+<div style="max-width: 860px; margin: 0 auto; padding-bottom: 40px;">
+  
+  <!-- Header -->
+  <div style="text-align: center; margin-bottom: 32px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--primary-50); color: var(--primary-700); font-weight: 700; font-size: 13px; padding: 6px 16px; border-radius: 999px; margin-bottom: 12px; border: 1px solid rgba(37, 99, 235, 0.2);">
+      <span>Step 1 of 2</span> &bull; <span>Identity & Privacy Setup</span>
+    </div>
+    <h1 class="page-title" style="font-size: 28px; margin-bottom: 8px;">Create Your Edit ID Before Adding an Address</h1>
+    <p class="page-description" style="font-size: 15px; max-width: 640px; margin: 0 auto;">
+      No login, password, or email required! Anyone can add an address, but you must first generate your personal <strong>Edit ID</strong> to manage and protect your address.
+    </p>
+  </div>
+
+  {% if error %}
+  <div style="background: var(--error-50); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--error-600); padding: 14px 18px; border-radius: var(--radius-md); font-size: 14px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    <span>{{ error }}</span>
+  </div>
+  {% endif %}
+
+  <!-- Instructions & Why It's Needed Section -->
+  <div class="card" style="padding: 28px; margin-bottom: 28px; background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(37, 99, 235, 0.03) 100%); border-left: 4px solid var(--primary-600);">
+    <h2 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary-600)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      Why an Edit ID is Required & How It Works
+    </h2>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 20px;">
+      <div style="background: var(--bg-surface); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+        <div style="font-size: 24px; margin-bottom: 8px;">🔐</div>
+        <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text-main);">Public Link vs. Private Editing</div>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          Your address gets a 6-character Public ID (e.g. <code>ab1226</code>) that couriers and friends can view and copy. To protect your address from unauthorized edits or tampering, <strong>only you with your secret Edit ID can edit it</strong>.
+        </p>
+      </div>
+
+      <div style="background: var(--bg-surface); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+        <div style="font-size: 24px; margin-bottom: 8px;">🚫</div>
+        <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text-main);">Zero Passwords or Accounts</div>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          No username, password, or email is needed! Just select your parents' initials, your ID ending, and your birth date — easy to recall anytime without password resets.
+        </p>
+      </div>
+
+      <div style="background: var(--bg-surface); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+        <div style="font-size: 24px; margin-bottom: 8px;">🛡️</div>
+        <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text-main);">Cryptographically Private</div>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          Your Edit ID is salted and hashed with <strong>Argon2id</strong> encryption. It is never exposed in the public resolver link and cannot be seen by riders.
+        </p>
+      </div>
+
+      <div style="background: var(--bg-surface); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+        <div style="font-size: 24px; margin-bottom: 8px;">✨</div>
+        <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text-main);">Strictly Unique Per Person</div>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          Edit IDs can <strong>never be identical or same</strong> across users. If base initials and DOB ever coincide, an automatic sequence (e.g. <code>-2</code>) guarantees exclusivity.
+        </p>
+      </div>
+    </div>
+
+    <!-- Formula Breakdown -->
+    <div style="background: var(--bg-main); padding: 16px; border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+      <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px;">The Edit ID Formula (13 Characters)</div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;">
+        <span class="badge" style="background: var(--primary-100); color: var(--primary-800); padding: 6px 10px;">Public ID (6 chars)</span>
+        <span>+</span>
+        <span class="badge" style="background: var(--primary-100); color: var(--primary-800); padding: 6px 10px;">Father's Initial (1)</span>
+        <span>+</span>
+        <span class="badge" style="background: var(--primary-100); color: var(--primary-800); padding: 6px 10px;">Mother's Initial (1)</span>
+        <span>+</span>
+        <span class="badge" style="background: var(--primary-100); color: var(--primary-800); padding: 6px 10px;">Last 3 digits of CNIC (3)</span>
+        <span>+</span>
+        <span class="badge" style="background: var(--primary-100); color: var(--primary-800); padding: 6px 10px;">DOB Year YY (2)</span>
+        <span>=</span>
+        <span style="font-family: var(--font-mono); color: var(--primary-700); font-weight: 700; font-size: 14px; background: white; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color);">ab1226MA12391</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
+
+    <!-- Option 1: Generate New Edit ID -->
+    <div class="card" style="padding: 32px;">
+      <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Option 1: Generate Your Edit ID & Continue</h3>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">
+        Pick the alphabets, enter your ID ending and birth date. No full name or email required!
+      </p>
+
+      <!-- Live Reactive Generator Preview -->
+      <div style="background: var(--primary-50); border: 2px dashed var(--primary-400); border-radius: var(--radius-lg); padding: 20px; text-align: center; margin-bottom: 28px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--primary-800); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Live Generated Edit ID Preview</div>
+        <div id="live-edit-id-preview" style="font-family: var(--font-mono); font-size: 28px; font-weight: 800; letter-spacing: 2px; color: var(--primary-700); min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+          <span id="preview-pub" style="color: var(--primary-800); background: rgba(37, 99, 235, 0.1); padding: 2px 8px; border-radius: 6px;">{{ preview_public_id }}</span>
+          <span id="preview-f" style="opacity: 0.4;">_</span>
+          <span id="preview-m" style="opacity: 0.4;">_</span>
+          <span id="preview-c" style="opacity: 0.4;">___</span>
+          <span id="preview-d" style="opacity: 0.4;">__</span>
+        </div>
+        <div id="live-preview-hint" style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+          Select your initials and enter ID/DOB below to assemble your Edit ID in real-time
+        </div>
+      </div>
+
+      <form action="/address/create-edit-id" method="post" id="edit-id-form">
+        <input type="hidden" name="public_id" value="{{ preview_public_id }}">
+        
+        <!-- Parents' Alphabet Dropdowns -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="father_initial">Father's Name Initial <span style="color: var(--error-500); font-weight: bold;">*</span></label>
+            <select id="father_initial" name="father_name" class="form-control" required onchange="updateLivePreview()" style="font-size: 15px; font-weight: 600;">
+              <option value="" disabled selected>Select Alphabet (A-Z)</option>
+              <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+              <option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option>
+              <option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option>
+              <option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option>
+              <option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option>
+              <option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option>
+              <option value="Y">Y</option><option value="Z">Z</option>
+            </select>
+            <span style="font-size: 11px; color: var(--text-muted);">First letter of father's name (e.g. 'M' for Muhammad)</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="mother_initial">Mother's Name Initial <span style="color: var(--error-500); font-weight: bold;">*</span></label>
+            <select id="mother_initial" name="mother_name" class="form-control" required onchange="updateLivePreview()" style="font-size: 15px; font-weight: 600;">
+              <option value="" disabled selected>Select Alphabet (A-Z)</option>
+              <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+              <option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option>
+              <option value="I">I</option><option value="J">J</option><option value="K">K</option><option value="L">L</option>
+              <option value="M">M</option><option value="N">N</option><option value="O">O</option><option value="P">P</option>
+              <option value="Q">Q</option><option value="R">R</option><option value="S">S</option><option value="T">T</option>
+              <option value="U">U</option><option value="V">V</option><option value="W">W</option><option value="X">X</option>
+              <option value="Y">Y</option><option value="Z">Z</option>
+            </select>
+            <span style="font-size: 11px; color: var(--text-muted);">First letter of mother's name (e.g. 'A' for Ayesha)</span>
+          </div>
+        </div>
+
+        <!-- CNIC & Date of Birth -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="cnic_or_id_card">Last 3 Digits of CNIC / ID Card <span style="color: var(--error-500); font-weight: bold;">*</span></label>
+            <input type="text" id="cnic_or_id_card" name="cnic_or_id_card" class="form-control" 
+                   inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" placeholder="e.g. 123" required 
+                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 3); updateLivePreview();">
+            <span style="font-size: 11px; color: var(--text-muted);">Strictly numeric, maximum 3 digits (e.g. '123') &mdash; does not accept &gt; 3 digits</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="date_of_birth">Date of Birth <span style="color: var(--error-500); font-weight: bold;">*</span></label>
+            <input type="date" id="date_of_birth" name="date_of_birth" class="form-control" required onchange="updateLivePreview()" oninput="updateLivePreview()">
+            <span style="font-size: 11px; color: var(--text-muted);">Converted to DDMMYYYY (e.g. '01011991')</span>
+          </div>
+        </div>
+
+        <!-- Optional Phone Number with Enable/Disable Toggle -->
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
+            <label for="enable_phone_toggle" style="font-weight: 700; font-size: 14px; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0;">
+              <input type="checkbox" id="enable_phone_toggle" name="enable_phone" onchange="togglePhoneInput()" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary-600);">
+              Enable Phone Number for Delivery
+            </label>
+            <span id="phone-status-badge" class="badge" style="background: var(--surface-secondary); color: var(--text-muted); font-size: 11px;">Disabled</span>
+          </div>
+          <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 10px 0; line-height: 1.4;">
+            Delivery couriers and riders sometimes require a contact number to coordinate parcel drop-off. You can enable or disable this at any time.
+          </p>
+
+          <div id="phone-input-container" style="display: none;">
+            <input type="tel" id="phone" name="phone" class="form-control" placeholder="e.g. +92 300 1234567" disabled>
+            <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">Used solely for courier delivery contact</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>Generate Edit ID & Proceed to Add Address</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </form>
+    </div>
+
+    <!-- Option 2: Already Have Edit ID -->
+    <div class="card" style="padding: 24px; border: 1px solid var(--border-color); background: var(--bg-surface);">
+      <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleExistingEditId()">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-100); color: var(--primary-700); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+            🔑
+          </div>
+          <div>
+            <h4 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text-main);">Already created an Edit ID previously?</h4>
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">Click here to enter your existing Edit ID and add another address immediately.</p>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="toggle-existing-btn">
+          Enter Existing ID
+        </button>
+      </div>
+
+      <div id="existing-edit-id-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+        <form action="/address/use-existing-edit-id" method="post">
+          <div class="form-group" style="margin-bottom: 18px;">
+            <label class="form-label" for="existing_edit_id" style="font-weight: 700; font-size: 14px;">Enter Your 13-Character Edit ID</label>
+            <input type="text" id="existing_edit_id" name="edit_id" class="form-control" placeholder="e.g. ab1226MA12391 (case-insensitive)" required style="font-family: var(--font-mono); font-size: 16px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
+            
+            <!-- Suggestion on how to fill it -->
+            <div style="background: var(--surface-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; margin-top: 10px; font-size: 12px; line-height: 1.5;">
+              <div style="font-weight: 700; color: var(--primary-700); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                💡 Suggestion: How to fill your 13-Character Edit ID
+              </div>
+              <div style="color: var(--text-secondary); margin-bottom: 8px;">
+                Your 13-Character Edit ID is assembled following this exact sequence:
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 10px;">
+                <div style="background: white; border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 6px;">
+                  <strong style="color: var(--primary-700); font-family: var(--font-mono);">1. Public ID (6)</strong>
+                  <div style="font-size: 11px; color: var(--text-muted);">e.g. <code>ab1226</code></div>
+                </div>
+                <div style="background: white; border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 6px;">
+                  <strong style="color: var(--primary-700); font-family: var(--font-mono);">2. Father Initial (1)</strong>
+                  <div style="font-size: 11px; color: var(--text-muted);">e.g. Muhammad &rarr; <code>M</code></div>
+                </div>
+                <div style="background: white; border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 6px;">
+                  <strong style="color: var(--primary-700); font-family: var(--font-mono);">3. Mother Initial (1)</strong>
+                  <div style="font-size: 11px; color: var(--text-muted);">e.g. Ayesha &rarr; <code>A</code></div>
+                </div>
+                <div style="background: white; border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 6px;">
+                  <strong style="color: var(--primary-700); font-family: var(--font-mono);">4. CNIC Last 3 (3)</strong>
+                  <div style="font-size: 11px; color: var(--text-muted);">e.g. ...123 &rarr; <code>123</code></div>
+                </div>
+                <div style="background: white; border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 6px;">
+                  <strong style="color: var(--primary-700); font-family: var(--font-mono);">5. DOB Year (2)</strong>
+                  <div style="font-size: 11px; color: var(--text-muted);">e.g. 1991 &rarr; <code>91</code></div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                <span style="color: var(--text-secondary);">Result: <code style="font-weight: 800; color: var(--primary-700); font-size: 13px;">ab1226MA12391</code></span>
+                <span style="font-size: 11px; color: var(--text-muted); font-style: italic;">(6 + 1 + 1 + 3 + 2 = Exactly 13 characters, case-insensitive)</span>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">
+            Verify Edit ID & Add Address &rarr;
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleExistingEditId() {
+  const section = document.getElementById('existing-edit-id-section');
+  const btn = document.getElementById('toggle-existing-btn');
+  if (section.style.display === 'none' || section.style.display === '') {
+    section.style.display = 'block';
+    btn.textContent = 'Hide';
+  } else {
+    section.style.display = 'none';
+    btn.textContent = 'Enter Existing ID';
+  }
+}
+
+function togglePhoneInput() {
+  const checkbox = document.getElementById('enable_phone_toggle');
+  const container = document.getElementById('phone-input-container');
+  const phoneInput = document.getElementById('phone');
+  const badge = document.getElementById('phone-status-badge');
+
+  if (checkbox.checked) {
+    container.style.display = 'block';
+    phoneInput.disabled = false;
+    phoneInput.focus();
+    badge.textContent = 'Enabled';
+    badge.style.background = 'var(--success-50)';
+    badge.style.color = 'var(--success-600)';
+    badge.style.border = '1px solid rgba(16, 185, 129, 0.2)';
+  } else {
+    container.style.display = 'none';
+    phoneInput.disabled = true;
+    phoneInput.value = '';
+    badge.textContent = 'Disabled';
+    badge.style.background = 'var(--surface-secondary)';
+    badge.style.color = 'var(--text-muted)';
+    badge.style.border = 'none';
+  }
+}
+
+function updateLivePreview() {
+  const fatherSelect = document.getElementById('father_initial');
+  const motherSelect = document.getElementById('mother_initial');
+  const cnicInput = document.getElementById('cnic_or_id_card').value.replace(/[^0-9]/g, '').slice(0, 3);
+  const dobInput = document.getElementById('date_of_birth').value;
+
+  const fElem = document.getElementById('preview-f');
+  const mElem = document.getElementById('preview-m');
+  const cElem = document.getElementById('preview-c');
+  const dElem = document.getElementById('preview-d');
+  const hintElem = document.getElementById('live-preview-hint');
+
+  const fatherVal = fatherSelect.value;
+  const motherVal = motherSelect.value;
+
+  // Father's initial
+  if (fatherVal) {
+    fElem.textContent = fatherVal.toUpperCase();
+    fElem.style.opacity = '1';
+    fElem.style.color = 'var(--primary-700)';
+  } else {
+    fElem.textContent = '_';
+    fElem.style.opacity = '0.4';
+  }
+
+  // Mother's initial
+  if (motherVal) {
+    mElem.textContent = motherVal.toUpperCase();
+    mElem.style.opacity = '1';
+    mElem.style.color = 'var(--primary-700)';
+  } else {
+    mElem.textContent = '_';
+    mElem.style.opacity = '0.4';
+  }
+
+  // CNIC last 3
+  if (cnicInput.length >= 3) {
+    cElem.textContent = cnicInput.slice(-3).toUpperCase();
+    cElem.style.opacity = '1';
+    cElem.style.color = 'var(--primary-700)';
+  } else if (cnicInput.length > 0) {
+    cElem.textContent = cnicInput.toUpperCase().padStart(3, '0');
+    cElem.style.opacity = '0.7';
+  } else {
+    cElem.textContent = '___';
+    cElem.style.opacity = '0.4';
+  }
+
+  // DOB YY (final two digits of birth year)
+  if (dobInput) {
+    const parts = dobInput.split('-');
+    if (parts.length === 3) {
+      const yy = parts[0].slice(-2);
+      dElem.textContent = yy;
+      dElem.style.opacity = '1';
+      dElem.style.color = 'var(--primary-700)';
+    }
+  } else {
+    dElem.textContent = '__';
+    dElem.style.opacity = '0.4';
+  }
+
+  if (fatherVal && motherVal && cnicInput.length >= 3 && dobInput) {
+    hintElem.innerHTML = '<span style="color: var(--success-600); font-weight: 700;">✓ Perfect! Your unique Edit ID is ready to generate.</span>';
+  } else {
+    hintElem.textContent = 'Select your initials and enter ID/DOB below to assemble your Edit ID in real-time';
+  }
+}
+</script>
+{% endblock %}

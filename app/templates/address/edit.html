@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Address {{ address.public_id|upper }} | Universal Address{% endblock %}
+
+{% block content %}
+<div style="max-width: 780px; margin: 0 auto;">
+
+  <!-- Header -->
+  <div style="margin-bottom: 24px;">
+    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
+      <a href="/my-addresses">My Addresses</a> / <a href="/address/{{ address.public_id }}/view">{{ address.public_id }}</a> / Edit
+    </div>
+    <h1 class="page-title">Edit Physical Address</h1>
+    <p class="page-description" style="margin-bottom: 0;">Update location details while keeping your public URL stable.</p>
+  </div>
+
+  <!-- Permanent Stability Notice -->
+  <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div style="font-weight: 700; color: var(--success-600); font-size: 14px;">Permanent Public Address ID</div>
+      <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">
+        Editing this address will <strong>NOT</strong> change your Public ID <code>{{ address.public_id }}</code> or smart URL.
+      </div>
+    </div>
+    <span class="public-id-badge" style="font-size: 20px;">{{ address.public_id }}</span>
+  </div>
+
+  {% if error %}
+  <div style="background: var(--error-50); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--error-600); padding: 12px 14px; border-radius: var(--radius-md); font-size: 13px; margin-bottom: 20px;">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <div class="card" style="padding: 32px;">
+    <form action="/address/{{ address.public_id }}/edit" method="post">
+      
+      <input type="hidden" id="address_type" name="address_type" value="{{ address.address_type or 'PERSONAL' }}">
+      <input type="hidden" id="location_scope" name="location_scope" value="{{ address.location_scope or 'LOCAL' }}">
+
+      <!-- Address Category (Personal vs Business) -->
+      <div class="form-group" style="margin-bottom: 24px;">
+        <label class="form-label" style="font-size: 15px; font-weight: 700; margin-bottom: 12px; display: block; color: var(--text-main);">
+          Address Category <span class="required" style="color: var(--error-600); font-size: 16px;">*</span>
+        </label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          
+          <!-- Option 1: Personal Address -->
+          <div id="cat-personal-card" onclick="selectEditCategory('PERSONAL')" 
+               class="reach-card {% if address.address_type != 'BUSINESS' %}reach-card-active{% else %}reach-card-inactive{% endif %}">
+            <div class="reach-card-header">
+              <span class="reach-icon">👤</span>
+              <span id="badge-cat-personal" class="reach-badge {% if address.address_type != 'BUSINESS' %}badge-active{% else %}badge-inactive{% endif %}">
+                {% if address.address_type != 'BUSINESS' %}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ACTIVE
+                {% else %}
+                INACTIVE
+                {% endif %}
+              </span>
+            </div>
+            <div class="reach-title">Personal Address</div>
+            <div class="reach-desc">
+              For homes, residences, personal parcels & private deliveries
+            </div>
+          </div>
+
+          <!-- Option 2: Business Address -->
+          <div id="cat-business-card" onclick="selectEditCategory('BUSINESS')" 
+               class="reach-card {% if address.address_type == 'BUSINESS' %}reach-card-active{% else %}reach-card-inactive{% endif %}">
+            <div class="reach-card-header">
+              <span class="reach-icon">🏢</span>
+              <span id="badge-cat-business" class="reach-badge {% if address.address_type == 'BUSINESS' %}badge-active{% else %}badge-inactive{% endif %}">
+                {% if address.address_type == 'BUSINESS' %}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ACTIVE
+                {% else %}
+                INACTIVE
+                {% endif %}
+              </span>
+            </div>
+            <div class="reach-title">Business Address</div>
+            <div class="reach-desc">
+              For shops, offices, companies & commercial logistics (Transferable Edit ID)
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Business Name (Visible when Business Address is selected) -->
+      <div id="biz-name-group" class="form-group" style="{% if address.address_type != 'BUSINESS' %}display: none;{% endif %} background: rgba(37, 99, 235, 0.04); border: 1.5px dashed var(--primary-300); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px;">
+        <label class="form-label" for="business_name" style="font-weight: 700; color: var(--primary-800);">
+          🏢 Business / Company / Shop Name <span class="required" style="color: var(--error-600);">*</span>
+        </label>
+        <input type="text" id="business_name" name="business_name" value="{{ address.business_name or '' }}" class="form-control" placeholder="e.g. Al-Madina Traders or Nova Technologies Pvt Ltd">
+        <div class="form-text" style="color: var(--text-secondary); margin-top: 4px; font-size: 12px;">
+          For business addresses, ownership and Edit ID can be transferred if business management changes.
+        </div>
+      </div>
+
+      <!-- Compulsory Contact Person Name -->
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" for="recipient_name" style="font-weight: 700;">
+          👤 Contact Person Name <span class="required" style="color: var(--error-600);">*</span>
+        </label>
+        <input type="text" id="recipient_name" name="recipient_name" value="{{ address.recipient_name or '' }}" class="form-control" required placeholder="e.g. Muhammad Bilal">
+        <div class="form-text" style="color: var(--text-secondary); margin-top: 4px; font-size: 12px;">
+          Compulsory for both personal and business addresses.
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 24px;">
+        <label class="form-label" style="font-size: 15px; font-weight: 700; margin-bottom: 12px; display: block; color: var(--text-main);">
+          Select Delivery Reach (Two Options)
+        </label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          
+          <!-- Option 1: Local City Delivery -->
+          <div id="scope-local-card" onclick="setEditScope('LOCAL')" 
+               class="reach-card {% if address.location_scope == 'LOCAL' %}reach-card-active{% else %}reach-card-inactive{% endif %}">
+            <div class="reach-card-header">
+              <span class="reach-icon">🛵</span>
+              <span id="badge-local" class="reach-badge {% if address.location_scope == 'LOCAL' %}badge-active{% else %}badge-inactive{% endif %}">
+                {% if address.location_scope == 'LOCAL' %}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ACTIVE
+                {% else %}
+                INACTIVE
+                {% endif %}
+              </span>
+            </div>
+            <div class="reach-title">Local City Delivery</div>
+            <div class="reach-desc">
+              For fast intra-city courier delivery (within your city)
+            </div>
+          </div>
+
+          <!-- Option 2: Out of City / Worldwide -->
+          <div id="scope-intl-card" onclick="setEditScope('INTERNATIONAL')" 
+               class="reach-card {% if address.location_scope == 'INTERNATIONAL' %}reach-card-active{% else %}reach-card-inactive{% endif %}">
+            <div class="reach-card-header">
+              <span class="reach-icon">🌍</span>
+              <span id="badge-intl" class="reach-badge {% if address.location_scope == 'INTERNATIONAL' %}badge-active{% else %}badge-inactive{% endif %}">
+                {% if address.location_scope == 'INTERNATIONAL' %}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ACTIVE
+                {% else %}
+                INACTIVE
+                {% endif %}
+              </span>
+            </div>
+            <div class="reach-title">Out of City / Worldwide</div>
+            <div class="reach-desc">
+              For shipping outside your city or anywhere in the whole world
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="country">Country <span class="required">*</span></label>
+          <input type="text" id="country" name="country" value="{{ address.country }}" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="city">City <span class="required">*</span></label>
+          <input type="text" id="city" name="city" value="{{ address.city }}" class="form-control" required>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="house_number">House Number</label>
+          <input type="text" id="house_number" name="house_number" value="{{ address.house_number or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="street">Street</label>
+          <input type="text" id="street" name="street" value="{{ address.street or '' }}" class="form-control">
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="district">District / State</label>
+          <input type="text" id="district" name="district" value="{{ address.district or address.province_state or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="landmark">Landmark</label>
+          <input type="text" id="landmark" name="landmark" value="{{ address.landmark or '' }}" class="form-control">
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="latitude">Latitude (GPS)</label>
+          <input type="number" step="any" id="latitude" name="latitude" value="{{ address.latitude or '' }}" class="form-control" placeholder="e.g. 30.7031">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="longitude">Longitude (GPS)</label>
+          <input type="number" step="any" id="longitude" name="longitude" value="{{ address.longitude or '' }}" class="form-control" placeholder="e.g. 70.6500">
+        </div>
+      </div>
+      {% if address.latitude and address.longitude %}
+      <div style="margin-bottom: 18px; font-size: 12px;">
+        <a href="https://www.google.com/maps/dir/?api=1&destination={{ address.latitude }},{{ address.longitude }}&travelmode=driving" target="_blank" rel="noopener" style="color: var(--success-600); font-weight: 700; text-decoration: underline;">
+          🚗 Test Google Maps Driving Route for this pin ↗
+        </a>
+      </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label class="form-label" for="destination_url">Destination URL</label>
+        <input type="url" id="destination_url" name="destination_url" value="{{ address.destination_url or '' }}" class="form-control">
+        <div class="form-text">Must begin with http:// or https://</div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="redirect_seconds">Redirect Delay (Seconds)</label>
+          <select id="redirect_seconds" name="redirect_seconds" class="form-control">
+            {% for s in [0, 1, 2, 3, 5, 10, 15, 30] %}
+            <option value="{{ s }}" {% if address.redirect_seconds == s %}selected{% endif %}>{{ s }} seconds</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="is_active">Status</label>
+          <select id="is_active" name="is_active" class="form-control">
+            <option value="true" {% if address.is_active %}selected{% endif %}>Active</option>
+            <option value="false" {% if not address.is_active %}selected{% endif %}>Inactive (Paused)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; margin-top: 28px;">
+        <a href="/address/{{ address.public_id }}/view" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary btn-lg">
+          Save Changes & Create Version
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectEditCategory(cat) {
+  const typeInput = document.getElementById("address_type");
+  const catPersonalCard = document.getElementById("cat-personal-card");
+  const catBusinessCard = document.getElementById("cat-business-card");
+  const badgePersonal = document.getElementById("badge-cat-personal");
+  const badgeBusiness = document.getElementById("badge-cat-business");
+  const bizGroup = document.getElementById("biz-name-group");
+  const bizInput = document.getElementById("business_name");
+
+  if (typeInput) typeInput.value = cat;
+
+  const checkSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+  if (cat === "PERSONAL") {
+    if (catPersonalCard) {
+      catPersonalCard.classList.add("reach-card-active");
+      catPersonalCard.classList.remove("reach-card-inactive");
+    }
+    if (catBusinessCard) {
+      catBusinessCard.classList.remove("reach-card-active");
+      catBusinessCard.classList.add("reach-card-inactive");
+    }
+    if (badgePersonal) {
+      badgePersonal.className = "reach-badge badge-active";
+      badgePersonal.innerHTML = checkSvg + 'ACTIVE';
+    }
+    if (badgeBusiness) {
+      badgeBusiness.className = "reach-badge badge-inactive";
+      badgeBusiness.textContent = 'INACTIVE';
+    }
+    if (bizGroup) bizGroup.style.display = "none";
+    if (bizInput) bizInput.removeAttribute("required");
+  } else {
+    if (catBusinessCard) {
+      catBusinessCard.classList.add("reach-card-active");
+      catBusinessCard.classList.remove("reach-card-inactive");
+    }
+    if (catPersonalCard) {
+      catPersonalCard.classList.remove("reach-card-active");
+      catPersonalCard.classList.add("reach-card-inactive");
+    }
+    if (badgeBusiness) {
+      badgeBusiness.className = "reach-badge badge-active";
+      badgeBusiness.innerHTML = checkSvg + 'ACTIVE';
+    }
+    if (badgePersonal) {
+      badgePersonal.className = "reach-badge badge-inactive";
+      badgePersonal.textContent = 'INACTIVE';
+    }
+    if (bizGroup) {
+      bizGroup.style.display = "block";
+      if (bizInput) {
+        bizInput.setAttribute("required", "required");
+        bizInput.focus();
+      }
+    }
+  }
+}
+
+function setEditScope(scope) {
+  const scopeInput = document.getElementById("location_scope");
+  const localCard = document.getElementById("scope-local-card");
+  const intlCard = document.getElementById("scope-intl-card");
+  const badgeLocal = document.getElementById("badge-local");
+  const badgeIntl = document.getElementById("badge-intl");
+
+  if (scopeInput) scopeInput.value = scope;
+
+  const checkSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+  if (scope === "LOCAL") {
+    if (localCard) {
+      localCard.classList.add("reach-card-active");
+      localCard.classList.remove("reach-card-inactive");
+    }
+    if (intlCard) {
+      intlCard.classList.remove("reach-card-active");
+      intlCard.classList.add("reach-card-inactive");
+    }
+    if (badgeLocal) {
+      badgeLocal.className = "reach-badge badge-active";
+      badgeLocal.innerHTML = checkSvg + 'ACTIVE';
+    }
+    if (badgeIntl) {
+      badgeIntl.className = "reach-badge badge-inactive";
+      badgeIntl.textContent = 'INACTIVE';
+    }
+  } else {
+    if (intlCard) {
+      intlCard.classList.add("reach-card-active");
+      intlCard.classList.remove("reach-card-inactive");
+    }
+    if (localCard) {
+      localCard.classList.remove("reach-card-active");
+      localCard.classList.add("reach-card-inactive");
+    }
+    if (badgeIntl) {
+      badgeIntl.className = "reach-badge badge-active";
+      badgeIntl.innerHTML = checkSvg + 'ACTIVE';
+    }
+    if (badgeLocal) {
+      badgeLocal.className = "reach-badge badge-inactive";
+      badgeLocal.textContent = 'INACTIVE';
+    }
+  }
+}
+</script>
+<style>
+/* Delivery Reach High-Contrast Styles */
+.reach-card {
+  position: relative;
+  cursor: pointer;
+  padding: 22px;
+  border-radius: var(--radius-lg, 14px);
+  text-align: left;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+/* ACTIVATED: High contrast bold royal blue outline, subtle ice blue surface, dark text, drop shadow */
+.reach-card.reach-card-active {
+  border: 2.5px solid #2563eb !important;
+  background: #f0f7ff !important;
+  box-shadow: 0 10px 24px -4px rgba(37, 99, 235, 0.22), 0 4px 6px -2px rgba(37, 99, 235, 0.1) !important;
+  transform: translateY(-2px);
+}
+.reach-card.reach-card-active .reach-title {
+  color: #0f172a !important;
+  font-weight: 800;
+  font-size: 16px;
+}
+.reach-card.reach-card-active .reach-desc {
+  color: #1e3a8a !important;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+.reach-card.reach-card-active .reach-icon {
+  font-size: 32px;
+  filter: none;
+  opacity: 1;
+}
+
+/* DEACTIVATED: Clean muted slate, high-contrast difference, lower prominence */
+.reach-card.reach-card-inactive {
+  border: 2px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
+  transform: none;
+  opacity: 0.72;
+}
+.reach-card.reach-card-inactive:hover {
+  opacity: 0.95;
+  border-color: #94a3b8 !important;
+  background: #ffffff !important;
+  transform: translateY(-1px);
+}
+.reach-card.reach-card-inactive .reach-title {
+  color: #64748b !important;
+  font-weight: 600;
+  font-size: 16px;
+}
+.reach-card.reach-card-inactive .reach-desc {
+  color: #94a3b8 !important;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+.reach-card.reach-card-inactive .reach-icon {
+  font-size: 32px;
+  filter: grayscale(80%);
+  opacity: 0.55;
+}
+
+/* Reach Header & Badges */
+.reach-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.reach-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+.badge-active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.35);
+}
+.badge-inactive {
+  background: #e2e8f0;
+  color: #64748b;
+}
+</style>
+{% endblock %}

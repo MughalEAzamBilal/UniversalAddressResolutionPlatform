@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}Address {{ address.public_id|upper }} | Universal Address{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+
+  <!-- Breadcrumbs & Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
+        <a href="/my-addresses">My Addresses</a> / {{ address.public_id }}
+      </div>
+      <h1 class="page-title" style="display: flex; align-items: center; gap: 12px;">
+        Address: <span class="public-id-badge" style="font-size: 24px;">{{ address.public_id }}</span>
+      </h1>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <a href="/address/{{ address.public_id }}/edit" class="btn btn-secondary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        Edit Address
+      </a>
+      <a href="/{{ address.public_id }}" target="_blank" class="btn btn-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+        Open Resolver
+      </a>
+    </div>
+  </div>
+
+  {% if owner_transferred and new_edit_id %}
+  <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%); border: 2px solid var(--success-500); padding: 20px 24px; border-radius: var(--radius-lg); margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span style="font-size: 22px;">🎉</span>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--success-700); margin: 0;">Business Ownership Transferred Successfully!</h3>
+        </div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.5;">
+          The Public Address ID <strong>{{ address.public_id }}</strong> remains permanently unchanged. A new 13-character Edit ID has been generated for the new business owner:
+        </p>
+        <div style="display: inline-flex; align-items: center; gap: 12px; background: white; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+          <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">New Owner Edit ID:</span>
+          <strong style="font-family: var(--font-mono); font-size: 18px; color: var(--primary-700); letter-spacing: 1.5px;">{{ new_edit_id }}</strong>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="copyToClipboard('{{ new_edit_id }}', 'New Edit ID copied!')" style="padding: 4px 12px; font-size: 12px;">
+            Copy
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Smart Link Hero Card -->
+  <div class="card" style="padding: 28px; margin-bottom: 24px; background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(20, 184, 166, 0.05) 100%);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+      <div>
+        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--primary-600); letter-spacing: 0.05em; margin-bottom: 4px;">
+          Canonical Smart URL
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--text-primary);">
+          {{ base_url }}/{{ address.public_id }}
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary btn-sm" onclick="copyToClipboard('{{ base_url }}/{{ address.public_id }}', 'Smart URL copied!')">
+          Copy Link
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="showQrModal('{{ address.public_id }}', '{{ base_url }}/{{ address.public_id }}')">
+          QR Code
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="showShareModal('{{ address.public_id }}', '{{ base_url }}/{{ address.public_id }}')">
+          Share
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formatted Outputs Card -->
+  <div class="card" style="margin-bottom: 28px;">
+    <h2 class="card-title" style="margin-bottom: 18px;">Address Format Views</h2>
+    
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      {% for fmt_name, fmt_val in formatted_views.items() %}
+      <div style="background: var(--surface-secondary); padding: 14px 18px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+        <div style="flex: 1;">
+          <span class="badge badge-public" style="font-size: 11px; margin-bottom: 4px;">{{ fmt_name }}</span>
+          <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-top: 4px;">
+            {{ fmt_val }}
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('{{ fmt_val }}', '{{ fmt_name }} address copied!')">
+          Copy
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px;">
+    <div class="card">
+      <h3 class="card-title" style="font-size: 16px; margin-bottom: 14px;">Structured Properties</h3>
+      <table style="width: 100%; font-size: 13px; line-height: 1.8;">
+        <tr>
+          <td style="color: var(--text-muted); width: 140px;">Category:</td>
+          <td>
+            {% if address.address_type == 'BUSINESS' %}
+            <span class="badge" style="background: rgba(37, 99, 235, 0.12); color: var(--primary-700); border: 1px solid var(--primary-300); font-weight: 700; font-size: 11px;">🏢 Business Address</span>
+            {% else %}
+            <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: var(--success-700); border: 1px solid var(--success-300); font-weight: 700; font-size: 11px;">👤 Personal Address</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% if address.business_name %}
+        <tr>
+          <td style="color: var(--text-muted);">Business Name:</td>
+          <td><strong style="color: var(--text-primary);">{{ address.business_name }}</strong></td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="color: var(--text-muted);">Contact Person:</td>
+          <td><strong>{{ address.recipient_name or '—' }}</strong></td>
+        </tr>
+        <tr>
+          <td style="color: var(--text-muted);">Delivery Reach:</td>
+          <td>
+            {% if address.location_scope == 'LOCAL' %}
+            <span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 700; font-size: 11px;">🛵 Local City Delivery</span>
+            {% else %}
+            <span class="badge" style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; font-weight: 700; font-size: 11px;">🌍 Out of City / Worldwide</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr><td style="color: var(--text-muted);">City:</td><td>{{ address.city }}</td></tr>
+        <tr><td style="color: var(--text-muted);">Country:</td><td>{{ address.country }} ({{ address.country_code }})</td></tr>
+        <tr><td style="color: var(--text-muted);">Postal Code:</td><td>{{ address.postal_code or '—' }}</td></tr>
+        {% if address.latitude and address.longitude %}
+        <tr>
+          <td style="color: var(--text-muted);">Google Maps Pin:</td>
+          <td>
+            <a href="https://www.google.com/maps?q={{ address.latitude }},{{ address.longitude }}" target="_blank" rel="noopener" style="color: var(--primary-600); font-weight: 600;">
+              📍 {{ address.latitude }}, {{ address.longitude }}
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td style="color: var(--text-muted);">Driving Route:</td>
+          <td>
+            <a href="https://www.google.com/maps/dir/?api=1&destination={{ address.latitude }},{{ address.longitude }}&travelmode=driving" target="_blank" rel="noopener" style="color: var(--success-600); font-weight: 700;">
+              🚗 Start Driving Navigation ↗
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td style="color: var(--text-muted);">Driving Route:</td>
+          <td>
+            <a href="https://www.google.com/maps/dir/?api=1&destination={{ address.address_text|urlencode }}&travelmode=driving" target="_blank" rel="noopener" style="color: var(--success-600); font-weight: 700;">
+              🚗 Start Driving Navigation ↗
+            </a>
+          </td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title" style="font-size: 16px; margin-bottom: 14px;">Smart Redirection</h3>
+      <div style="font-size: 13px; line-height: 1.8;">
+        <div style="color: var(--text-muted); margin-bottom: 4px;">Destination URL:</div>
+        <div style="background: var(--surface-secondary); padding: 8px 12px; border-radius: var(--radius-sm); word-break: break-all; font-family: var(--font-mono); font-size: 12px;">
+          {{ address.destination_url or 'None configured' }}
+        </div>
+
+        <div style="margin-top: 12px; display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Redirect Delay:</span>
+          <strong>{{ address.redirect_seconds }} seconds</strong>
+        </div>
+        <div style="margin-top: 6px; display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Status:</span>
+          {% if address.is_active %}
+          <span class="badge badge-active">Active</span>
+          {% else %}
+          <span class="badge badge-inactive">Inactive</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if address.address_type == 'BUSINESS' %}
+  <!-- Business Ownership & Edit ID Transfer Card (Strictly for Business Addresses) -->
+  <div id="transfer-owner-section" class="card" style="margin-bottom: 28px; border: 1.5px solid var(--primary-300); background: linear-gradient(180deg, rgba(37, 99, 235, 0.02) 0%, rgba(255, 255, 255, 1) 100%);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+      <div>
+        <h3 class="card-title" style="font-size: 17px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+          <span>🏢</span> Transfer Business Owner (Change Edit ID)
+        </h3>
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.45;">
+          Only for business addresses: if the business changes owner, you can transfer this address to the new owner. The 6-character Public Address ID (<strong>{{ address.public_id }}</strong>) and URL stay 100% stable and permanent!
+        </p>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="toggleTransferForm()" id="btn-toggle-transfer" style="font-weight: 700;">
+        Transfer Ownership Form ↓
+      </button>
+    </div>
+
+    <div id="transfer-form-container" style="display: none; border-top: 1px dashed var(--border-color); padding-top: 18px; margin-top: 12px;">
+      <form action="/address/{{ address.public_id }}/transfer-owner" method="post" onsubmit="return confirm('Are you sure you want to transfer ownership of this business address? The existing Edit ID will be replaced with a new 13-character Edit ID for the new owner.');">
+        
+        <div style="background: rgba(37, 99, 235, 0.05); padding: 14px 16px; border-radius: var(--radius-md); margin-bottom: 18px; font-size: 13px; color: var(--primary-900); border-left: 4px solid var(--primary-600);">
+          <strong>Edit ID Generation Formula:</strong><br>
+          <code>[{{ address.public_id }}] + [Father 1st Initial] + [Mother 1st Initial] + [Last 3 CNIC Digits] + [DOB Year YY]</code><br>
+          <span style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; display: block;">
+            Example: If new owner's father is Muhammad (M), mother is Ayesha (A), CNIC ends in 123, and born in 1991 (91), their new Edit ID will be <strong>{{ address.public_id }}MA12391</strong> (13 characters).
+          </span>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="new_owner_name">New Owner Full Name <span class="required" style="color: var(--error-600);">*</span></label>
+            <input type="text" id="new_owner_name" name="new_owner_name" class="form-control" placeholder="e.g. Tariq Mehmood" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new_owner_father">Father's Name <span class="required" style="color: var(--error-600);">*</span></label>
+            <input type="text" id="new_owner_father" name="father_name" class="form-control" placeholder="e.g. Muhammad" required>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="new_owner_mother">Mother's Name <span class="required" style="color: var(--error-600);">*</span></label>
+            <input type="text" id="new_owner_mother" name="mother_name" class="form-control" placeholder="e.g. Ayesha" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new_owner_cnic">Last 3 Digits of CNIC / ID <span class="required" style="color: var(--error-600);">*</span></label>
+            <input type="text" id="new_owner_cnic" name="cnic_or_id_card" class="form-control" placeholder="e.g. 123" maxlength="3" pattern="\d{1,3}" required>
+            <div class="form-text" style="font-size: 11px;">Only the final 3 numeric digits</div>
+          </div>
+        </div>
+
+        <div class="form-group" style="max-width: 320px;">
+          <label class="form-label" for="new_owner_dob">Date of Birth <span class="required" style="color: var(--error-600);">*</span></label>
+          <input type="date" id="new_owner_dob" name="date_of_birth" class="form-control" required>
+          <div class="form-text" style="font-size: 11px;">Birth year supplies the final 2 digits (YY)</div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
+          <button type="button" class="btn btn-secondary" onclick="toggleTransferForm()">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background: var(--primary-600);">
+            Confirm Transfer & Generate New 13-Char Edit ID
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Version History Timeline -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Version History</h2>
+        <p class="card-subtitle">Every modification creates an immutable snapshot. The Public ID remains stable.</p>
+      </div>
+    </div>
+
+    <div class="timeline">
+      {% for v in versions %}
+      <div class="timeline-item">
+        <div class="timeline-dot">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="badge badge-public">Version {{ v.version_number }}</span>
+            <span style="font-size: 12px; color: var(--text-muted);">{{ v.created_at.strftime('%b %d, %Y at %H:%M UTC') }}</span>
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); margin-top: 6px; background: var(--surface-secondary); padding: 10px 14px; border-radius: var(--radius-md);">
+            Snapshot archived. Public Address ID permanently preserved as <code>{{ address.public_id }}</code>.
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleTransferForm() {
+  const container = document.getElementById("transfer-form-container");
+  const btn = document.getElementById("btn-toggle-transfer");
+  if (!container) return;
+  if (container.style.display === "none" || !container.style.display) {
+    container.style.display = "block";
+    if (btn) btn.textContent = "Close Form ↑";
+    const nameInput = document.getElementById("new_owner_name");
+    if (nameInput) nameInput.focus();
+  } else {
+    container.style.display = "none";
+    if (btn) btn.textContent = "Transfer Ownership Form ↓";
+  }
+}
+if (window.location.hash === "#transfer-owner-section") {
+  toggleTransferForm();
+}
+</script>
+{% endblock %}
