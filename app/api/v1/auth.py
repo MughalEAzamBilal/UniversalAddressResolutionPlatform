@@ -1,38 +1,28 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
+from flask import Blueprint, request, jsonify
 from app.database.session import get_db
-from app.schemas.auth import (
-    UserRegisterRequest,
-    UserLoginRequest,
-    EditIdLoginRequest,
-    TokenResponse,
-    EditSessionTokenResponse
-)
-from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
 from app.services.edit_id_service import EditIdService
-from app.api.deps import get_client_ip, get_current_user
-from app.models.user import User
+from app.api.deps import get_client_ip, get_api_current_user
 from app.core.security import rate_limiter
-from app.core.exceptions import RateLimitExceededError, AppError
+from app.core.exceptions import AppError
+from app.schemas.auth import UserRegisterRequest
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+auth_api_bp = Blueprint("api_auth", __name__)
 
 
-@router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
-def register(req: UserRegisterRequest, request: Request, db: Session = Depends(get_db)):
-    """
-    Register a new user account.
-    Returns user details and the one-time generated Edit ID.
-    """
-    ip = get_client_ip(request)
+@auth_api_bp.route("/auth/register", methods=["POST"])
+def register():
+    ip = get_client_ip()
     if not rate_limiter.is_allowed(f"register_{ip}", max_requests=10, window_seconds=60):
-        raise HTTPException(status_code=429, detail="Too many registration attempts. Please wait.")
+        return jsonify({"detail": "Too many registration attempts. Please wait."}), 429
 
+    data = request.get_json(silent=True) or {}
+    db = get_db()
     auth_service = AuthService(db)
     try:
+        req = UserRegisterRequest(**data)
         user, edit_id = auth_service.register(req)
-        return {
+        return jsonify({
             "message": "User registered successfully.",
             "user": {
                 "id": user.id,
@@ -42,45 +32,58 @@ def register(req: UserRegisterRequest, request: Request, db: Session = Depends(g
             },
             "edit_id": edit_id,
             "notice": "Please save your Edit ID securely. It allows you to access and edit your addresses."
-        }
+        }), 201
     except AppError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
+        return jsonify({"detail": e.message}), e.status_code
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 400
 
 
-@router.post("/login", response_model=TokenResponse)
-def login(req: UserLoginRequest, request: Request, db: Session = Depends(get_db)):
-    """Standard password login returning JWT access token."""
-    ip = get_client_ip(request)
+@auth_api_bp.route("/auth/login", methods=["POST"])
+def login():
+    ip = get_client_ip()
     if not rate_limiter.is_allowed(f"login_{ip}", max_requests=15, window_seconds=60):
-        raise HTTPException(status_code=429, detail="Too many login attempts. Please wait.")
+        return jsonify({"detail": "Too many login attempts. Please wait."}), 429
 
+    data = request.get_json(silent=True) or {}
+    username_or_email = data.get("username_or_email", "")
+    password = data.get("password", "")
+
+    db = get_db()
     auth_service = AuthService(db)
     try:
-        user = auth_service.authenticate_password(req.username_or_email, req.password, ip_address=ip)
-        return auth_service.create_user_tokens(user)
+        user = auth_service.authenticate_password(username_or_email, password, ip_address=ip)
+        token_data = auth_service.create_user_tokens(user)
+        return jsonify(token_data)
     except AppError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
+        return jsonify({"detail": e.message}), e.status_code
 
 
-@router.post("/edit-id-login", response_model=EditSessionTokenResponse)
-def edit_id_login(req: EditIdLoginRequest, request: Request, db: Session = Depends(get_db)):
-    """
-    Edit ID verification endpoint.
-    Case-insensitive verification generating a secure editing session token.
-    """
-    ip = get_client_ip(request)
-    if not rate_limiter.is_allowed(f"editid_{ip}", max_requests=8, window_seconds=60):
-        raise HTTPException(status_code=429, detail="Too many Edit ID verification attempts.")
-
+@auth_api_bp.route("/auth/edit-id-login", methods=["POST"])
+def edit_id_login():
+    data = request.get_json(silent=True) or {}
+    edit_id = data.get("edit_id", "")
+    ip = get_client_ip()
+    db = get_db()
     try:
-        user = EditIdService.verify_and_authenticate(db, req.edit_id, ip_address=ip)
+        user = EditIdService.verify_and_authenticate(db, edit_id, ip_address=ip)
         auth_service = AuthService(db)
-        return auth_service.create_edit_session_token(user)
+        token_data = auth_service.create_edit_session_token(user)
+        return jsonify(token_data)
     except AppError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
+        return jsonify({"detail": e.message}), e.status_code
 
 
-@router.get("/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)):
-    """Retrieve current authenticated user profile."""
-    return current_user
+@auth_api_bp.route("/auth/me", methods=["GET"])
+def me():
+    try:
+        user = get_api_current_user()
+        return jsonify({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role
+        })
+    except AppError as e:
+        return jsonify({"detail": e.message}), e.status_code

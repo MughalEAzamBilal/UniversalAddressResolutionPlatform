@@ -45,13 +45,29 @@ if db_url.startswith("sqlite"):
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
 
 
-def get_db():
-    """FastAPI dependency for database session."""
-    db: Session = SessionLocal()
+def get_db() -> Session:
+    """Returns database session scoped to Flask request context (g.db), or a new session."""
     try:
-        yield db
-    finally:
-        db.close()
+        from flask import g, has_request_context
+        if has_request_context():
+            if not hasattr(g, "db") or g.db is None:
+                g.db = SessionLocal()
+            return g.db
+    except ImportError:
+        pass
+    return SessionLocal()
+
+
+def close_db(e=None):
+    """Teardown handler to close request database session."""
+    try:
+        from flask import g
+        db = getattr(g, "db", None)
+        if db is not None:
+            db.close()
+            g.db = None
+    except ImportError:
+        pass
 
 
 def init_db():

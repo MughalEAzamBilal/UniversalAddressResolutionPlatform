@@ -1,128 +1,109 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from flask import Blueprint, request, jsonify
 from app.database.session import get_db
-from app.schemas.address import (
-    AddressCreate,
-    AddressUpdate,
-    AddressResponse,
-    AddressVersionResponse
-)
+from app.schemas.address import AddressCreate, AddressUpdate, AddressResponse
 from app.services.address_service import AddressService
-from app.api.deps import get_current_user
-from app.models.user import User, UserRole
+from app.api.deps import get_api_current_user
+from app.models.user import UserRole
 from app.core.exceptions import AppError
 
-router = APIRouter(prefix="/addresses", tags=["Addresses"])
+addresses_api_bp = Blueprint("api_addresses", __name__)
 
 
-@router.post("", response_model=AddressResponse, status_code=status.HTTP_201_CREATED)
-def create_address(
-    data: AddressCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Create a new structured address.
-    System generates a unique 6-character Public Address ID (LLDDYY).
-    """
+@addresses_api_bp.route("/addresses", methods=["POST"])
+def create_address():
+    current_user = get_api_current_user()
+    data = request.get_json(silent=True) or {}
+    db = get_db()
     service = AddressService(db)
     try:
-        return service.create_address(user_id=current_user.id, data=data)
+        addr_create = AddressCreate(**data)
+        address = service.create_address(user_id=current_user.id, data=addr_create)
+        resp = AddressResponse.model_validate(address).model_dump()
+        return jsonify(resp), 201
     except AppError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
+        return jsonify({"detail": e.message}), e.status_code
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 400
 
 
-@router.get("", response_model=List[AddressResponse])
-def list_addresses(
-    search: Optional[str] = None,
-    address_type: Optional[str] = None,
-    location_scope: Optional[str] = None,
-    is_active: Optional[bool] = None,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """List addresses belonging to current authenticated user."""
+@addresses_api_bp.route("/addresses", methods=["GET"])
+def list_addresses():
+    current_user = get_api_current_user()
+    db = get_db()
     service = AddressService(db)
-    return service.list_user_addresses(
+    search = request.args.get("search")
+    address_type = request.args.get("address_type")
+    location_scope = request.args.get("location_scope")
+    is_active = request.args.get("is_active")
+    active_bool = None
+    if is_active == "true":
+        active_bool = True
+    elif is_active == "false":
+        active_bool = False
+
+    skip = int(request.args.get("skip", 0))
+    limit = int(request.args.get("limit", 50))
+
+    addresses = service.list_user_addresses(
         user_id=current_user.id,
         search=search,
         address_type=address_type,
         location_scope=location_scope,
-        is_active=is_active,
+        is_active=active_bool,
         skip=skip,
         limit=limit
     )
+    resps = [AddressResponse.model_validate(a).model_dump() for a in addresses]
+    return jsonify(resps)
 
 
-@router.get("/{public_id}", response_model=AddressResponse)
-def get_address(
-    public_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Retrieve an address by Public Address ID for owner or admin."""
+@addresses_api_bp.route("/addresses/<public_id>", methods=["GET"])
+def get_address(public_id: str):
+    current_user = get_api_current_user()
+    db = get_db()
     service = AddressService(db)
-    addr = service.get_by_public_id(public_id)
     is_admin = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
-    if not is_admin and addr.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Permission denied.")
-    return addr
+    address = service.get_by_public_id(public_id, user_id=current_user.id, is_admin=is_admin)
+    return jsonify(AddressResponse.model_validate(address).model_dump())
 
 
-@router.put("/{public_id}", response_model=AddressResponse)
-def update_address(
-    public_id: str,
-    data: AddressUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Update address details.
-    The 6-character Public Address ID remains permanently stable!
-    Creates an address_versions snapshot.
-    """
+@addresses_api_bp.route("/addresses/<public_id>", methods=["PUT"])
+def update_address(public_id: str):
+    current_user = get_api_current_user()
+    data = request.get_json(silent=True) or {}
+    db = get_db()
     service = AddressService(db)
     is_admin = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
     try:
-        return service.update_address(
+        update_data = AddressUpdate(**data)
+        updated = service.update_address(
             public_id=public_id,
             user_id=current_user.id,
-            data=data,
+            data=update_data,
             is_admin=is_admin
         )
+        return jsonify(AddressResponse.model_validate(updated).model_dump())
     except AppError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
+        return jsonify({"detail": e.message}), e.status_code
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 400
 
 
-@router.delete("/{public_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_address(
-    public_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Delete an address and its versions."""
+@addresses_api_bp.route("/addresses/<public_id>/deactivate", methods=["POST"])
+def deactivate_address(public_id: str):
+    current_user = get_api_current_user()
+    db = get_db()
     service = AddressService(db)
     is_admin = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
-    try:
-        service.delete_address(public_id, user_id=current_user.id, is_admin=is_admin)
-        return None
-    except AppError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
+    service.set_active_status(public_id, user_id=current_user.id, is_active=False, is_admin=is_admin)
+    return jsonify({"public_id": public_id, "is_active": False})
 
 
-@router.get("/{public_id}/versions", response_model=List[AddressVersionResponse])
-def get_address_versions(
-    public_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """View version snapshots of address modifications."""
+@addresses_api_bp.route("/addresses/<public_id>/activate", methods=["POST"])
+def activate_address(public_id: str):
+    current_user = get_api_current_user()
+    db = get_db()
     service = AddressService(db)
     is_admin = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
-    try:
-        return service.get_versions(public_id, user_id=current_user.id, is_admin=is_admin)
-    except AppError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
+    service.set_active_status(public_id, user_id=current_user.id, is_active=True, is_admin=is_admin)
+    return jsonify({"public_id": public_id, "is_active": True})

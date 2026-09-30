@@ -1,86 +1,52 @@
 from typing import Optional
-from fastapi import Depends, Request, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from flask import request
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.core.security import decode_access_token
 from app.models.user import User, UserRole, AccountStatus
 from app.repositories.user_repository import UserRepository
+from app.core.exceptions import AppError
 
-security_scheme = HTTPBearer(auto_error=False)
 
-
-def get_client_ip(request: Request) -> str:
+def get_client_ip(req=None) -> str:
     """Extract client IP handling proxies."""
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "127.0.0.1"
+    if req is None:
+        req = request
+    x_forwarded = req.headers.get("X-Forwarded-For")
+    if x_forwarded:
+        return x_forwarded.split(",")[0].strip()
+    return req.remote_addr or "127.0.0.1"
 
 
-def get_token_from_request(
-    request: Request,
-    auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme)
-) -> Optional[str]:
-    """Extract JWT token from Bearer header or session cookie."""
-    if auth and auth.credentials:
-        return auth.credentials
-    # Fallback to cookie
-    return request.cookies.get("session_token") or request.cookies.get("edit_session_token")
+def get_api_current_user() -> User:
+    """Extract and validate authenticated user from Authorization header or cookie."""
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1].strip()
+    elif request.cookies.get("session_token"):
+        token = request.cookies.get("session_token")
+    elif request.cookies.get("edit_session_token"):
+        token = request.cookies.get("edit_session_token")
 
-
-def get_current_user(
-    token: Optional[str] = Depends(get_token_from_request),
-    db: Session = Depends(get_db)
-) -> User:
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required."
-        )
+        raise AppError("Authentication required.", status_code=401)
 
     payload = decode_access_token(token)
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token."
-        )
+    if not payload or not payload.get("sub"):
+        raise AppError("Invalid or expired token.", status_code=401)
 
-    user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload."
-        )
-
+    db: Session = get_db()
     user_repo = UserRepository(db)
-    user = user_repo.get_by_id(int(user_id))
+    user = user_repo.get_by_id(int(payload.get("sub")))
     if not user or user.account_status != AccountStatus.ACTIVE:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User account is inactive or not found."
-        )
+        raise AppError("User account is inactive or not found.", status_code=401)
 
     return user
 
 
-def get_current_admin(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    if current_user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Administrator privileges required."
-        )
-    return current_user
-
-
-def get_current_staff(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    if current_user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Staff privileges required."
-        )
-    return current_user
+def get_api_admin() -> User:
+    user = get_api_current_user()
+    if user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
+        raise AppError("Administrator privileges required.", status_code=403)
+    return user

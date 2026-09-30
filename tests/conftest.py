@@ -7,10 +7,8 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from fastapi.testclient import TestClient
 
 from app.database.base import Base
-from app.database.session import get_db
 from app.main import app
 from app.models.user import User, UserRole, AccountStatus
 from app.services.edit_id_service import EditIdService
@@ -24,7 +22,7 @@ engine = create_engine(
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
 
 
 @pytest.fixture(scope="function")
@@ -39,19 +37,70 @@ def db_session():
         Base.metadata.drop_all(bind=engine)
 
 
-@pytest.fixture(scope="function")
-def client(db_session):
-    """FastAPI TestClient with overridden database session dependency."""
-    def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
+class TestResponseWrapper:
+    def __init__(self, response):
+        self._r = response
+        cookie_dict = {}
+        for cookie_str in response.headers.getlist("Set-Cookie"):
+            parts = cookie_str.split(";")[0].split("=", 1)
+            if len(parts) == 2:
+                cookie_dict[parts[0].strip()] = parts[1].strip()
+        self.cookies = cookie_dict
 
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
+    def __getattr__(self, name):
+        return getattr(self._r, name)
+
+    def json(self):
+        return self._r.get_json(silent=True)
+
+    @property
+    def text(self):
+        return self._r.get_data(as_text=True)
+
+
+class FlaskTestClientWrapper:
+    def __init__(self, flask_client):
+        self._c = flask_client
+
+    def _prepare_kwargs(self, kwargs):
+        cookies = kwargs.pop("cookies", None)
+        if cookies:
+            for k, v in cookies.items():
+                self._c.set_cookie(k, v)
+        return kwargs
+
+    def get(self, *args, **kwargs):
+        kwargs = self._prepare_kwargs(kwargs)
+        res = self._c.get(*args, **kwargs)
+        return TestResponseWrapper(res)
+
+    def post(self, *args, **kwargs):
+        kwargs = self._prepare_kwargs(kwargs)
+        res = self._c.post(*args, **kwargs)
+        return TestResponseWrapper(res)
+
+    def put(self, *args, **kwargs):
+        kwargs = self._prepare_kwargs(kwargs)
+        res = self._c.put(*args, **kwargs)
+        return TestResponseWrapper(res)
+
+    def delete(self, *args, **kwargs):
+        kwargs = self._prepare_kwargs(kwargs)
+        res = self._c.delete(*args, **kwargs)
+        return TestResponseWrapper(res)
+
+
+@pytest.fixture(scope="function")
+def client(db_session, monkeypatch):
+    """Flask test client with overridden database session."""
+    import app.database.session as session_mod
+    monkeypatch.setattr(session_mod, "get_db", lambda: db_session)
+    monkeypatch.setattr(session_mod, "SessionLocal", lambda: db_session)
+    monkeypatch.setattr(session_mod, "close_db", lambda e=None: None)
+
+    app.config["TESTING"] = True
+    with app.test_client() as test_client:
+        yield FlaskTestClientWrapper(test_client)
 
 
 @pytest.fixture

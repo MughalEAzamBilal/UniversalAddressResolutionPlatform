@@ -3,12 +3,11 @@ Universal Address Resolution Platform
 All-in-one Management & Execution Script (Python 3.12+)
 
 Commands:
-  python run.py               -> Start the Uvicorn web server (Default)
-  python run.py start         -> Start the Uvicorn web server
+  python run.py               -> Start the Flask web server (Default)
+  python run.py start         -> Start the Flask web server
   python run.py setup         -> Setup virtual environment, install requirements, init & seed DB
   python run.py test          -> Run pytest test suite
   python run.py seed          -> Seed database with initial admin and sample addresses
-  python run.py migrate       -> Run Alembic database migrations
   python run.py --help        -> Display help & available commands
 """
 
@@ -122,7 +121,7 @@ def run_migrate():
 
 
 def run_server():
-    """Starts Uvicorn server."""
+    """Starts the Flask web server."""
     # Ensure DB & Seed on first start
     try:
         from app.database.session import init_db
@@ -132,26 +131,24 @@ def run_server():
     except Exception as e:
         print(f"Notice during startup check: {e}")
 
-    import uvicorn
+    from app.main import app
     from app.core.config import get_settings
     settings = get_settings()
 
     print("\n" + "=" * 64)
-    print(f"  {settings.APP_NAME}")
+    print(f"  {settings.APP_NAME} (Flask Edition)")
     print("=" * 64)
     print(f"  * Web Application URL:   {settings.PUBLIC_BASE_URL}")
-    print(f"  * Interactive API Docs:  {settings.PUBLIC_BASE_URL}/docs")
     print(f"  * Create Address:        {settings.PUBLIC_BASE_URL}/address/new")
     print(f"  * Admin Panel:           {settings.PUBLIC_BASE_URL}/admin")
     print(f"  * Default Admin Login:   admin / Admin123456!")
     print("=" * 64 + "\n")
 
     try:
-        uvicorn.run(
-            "app.main:app",
+        app.run(
             host="127.0.0.1",
             port=8000,
-            reload=settings.DEBUG
+            debug=settings.DEBUG
         )
     except KeyboardInterrupt:
         print("\nServer stopped.")

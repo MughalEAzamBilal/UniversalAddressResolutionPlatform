@@ -1,11 +1,7 @@
-from typing import Optional
 from datetime import datetime
-from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy.orm import Session
+from flask import Blueprint, render_template, request, redirect, session, make_response
 from app.database.session import get_db
-from app.web.deps import require_web_user, get_current_web_user
-from app.api.deps import get_client_ip
+from app.web.deps import require_web_user, get_current_web_user, get_client_ip
 from app.services.address_service import AddressService
 from app.services.address_formatter import AddressFormatter
 from app.services.auth_service import AuthService
@@ -15,63 +11,50 @@ from app.models.user import UserRole
 from app.models.address import AddressType
 from app.core.exceptions import AppError
 from app.core.config import get_settings
-from starlette.templating import Jinja2Templates
 
-
-router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+addresses_bp = Blueprint("addresses", __name__)
 settings = get_settings()
 
 
-@router.get("/address/new", response_class=HTMLResponse)
-@router.get("/create-edit-id", response_class=HTMLResponse)
-def create_address_page(
-    request: Request,
-    welcome_edit_id: Optional[str] = None,
-    current_user=Depends(get_current_web_user),
-    db: Session = Depends(get_db)
-):
+@addresses_bp.route("/address/new", methods=["GET"])
+@addresses_bp.route("/create-edit-id", methods=["GET"])
+def create_address_page():
+    db = get_db()
+    current_user = get_current_web_user()
+    welcome_edit_id = request.args.get("welcome_edit_id")
+
     if not current_user:
         from app.services.public_id_generator import public_id_generator
         preview_pub_id = public_id_generator.generate(db)
-        return templates.TemplateResponse(
-            request=request,
-            name="address/create_edit_id.html",
-            context={
-                "request": request,
-                "current_user": None,
-                "preview_public_id": preview_pub_id,
-                "active_nav": "new_address"
-            }
+        return render_template(
+            "address/create_edit_id.html",
+            current_user=None,
+            preview_public_id=preview_pub_id,
+            active_nav="new_address"
         )
-    return templates.TemplateResponse(
-        request=request,
-        name="address/new.html",
-        context={
-            "request": request,
-            "current_user": current_user,
-            "welcome_edit_id": welcome_edit_id,
-            "active_nav": "new_address"
-        }
+    return render_template(
+        "address/new.html",
+        current_user=current_user,
+        welcome_edit_id=welcome_edit_id,
+        active_nav="new_address"
     )
 
 
-@router.post("/address/create-edit-id", response_class=HTMLResponse)
-def create_edit_id_submit(
-    request: Request,
-    father_name: str = Form(...),
-    mother_name: str = Form(...),
-    cnic_or_id_card: str = Form(...),
-    date_of_birth: str = Form(...),
-    public_id: Optional[str] = Form(None),
-    full_name: Optional[str] = Form(None),
-    enable_phone: Optional[str] = Form(None),
-    phone: Optional[str] = Form(None),
-    email: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
-):
+@addresses_bp.route("/address/create-edit-id", methods=["POST"])
+def create_edit_id_submit():
+    db = get_db()
+    father_name = request.form.get("father_name", "").strip()
+    mother_name = request.form.get("mother_name", "").strip()
+    cnic_or_id_card = request.form.get("cnic_or_id_card", "").strip()
+    date_of_birth = request.form.get("date_of_birth", "").strip()
+    public_id = request.form.get("public_id")
+    full_name = request.form.get("full_name")
+    enable_phone = request.form.get("enable_phone")
+    phone = request.form.get("phone")
+    email = request.form.get("email")
+
     try:
-        clean_cnic = "".join(filter(str.isdigit, cnic_or_id_card.strip()))
+        clean_cnic = "".join(filter(str.isdigit, cnic_or_id_card))
         if len(clean_cnic) > 3:
             raise AppError("CNIC ending must not exceed 3 digit numbers.", status_code=400)
         if len(clean_cnic) == 0:
@@ -79,7 +62,7 @@ def create_edit_id_submit(
 
         dob = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
         auth_service = AuthService(db)
-        resolved_name = full_name.strip() if full_name and full_name.strip() else f"User {father_name.strip().upper()}{mother_name.strip().upper()}"
+        resolved_name = full_name.strip() if full_name and full_name.strip() else f"User {father_name.upper()}{mother_name.upper()}"
         resolved_phone = phone.strip() if (enable_phone and phone and phone.strip()) else None
 
         from app.models.address import Address
@@ -103,276 +86,229 @@ def create_edit_id_submit(
         )
 
         token_data = auth_service.create_edit_session_token(user)
+        session["user_id"] = user.id
 
-        response = RedirectResponse(url=f"/address/new?welcome_edit_id={raw_edit_id}", status_code=303)
+        response = make_response(redirect(f"/address/new?welcome_edit_id={raw_edit_id}", code=303))
         response.set_cookie(
             key="edit_session_token",
             value=token_data["access_token"],
             httponly=True,
             max_age=settings.EDIT_SESSION_EXPIRE_MINUTES * 60,
-            samesite="lax"
+            samesite="Lax"
         )
         return response
     except AppError as e:
         from app.services.public_id_generator import public_id_generator
-        return templates.TemplateResponse(
-            request=request,
-            name="address/create_edit_id.html",
-            context={"request": request, "error": e.message, "current_user": None, "preview_public_id": public_id_generator.generate(db), "active_nav": "new_address"},
-            status_code=e.status_code
-        )
+        return render_template(
+            "address/create_edit_id.html",
+            error=e.message,
+            current_user=None,
+            preview_public_id=public_id_generator.generate(db),
+            active_nav="new_address"
+        ), e.status_code
     except Exception as e:
         from app.services.public_id_generator import public_id_generator
-        return templates.TemplateResponse(
-            request=request,
-            name="address/create_edit_id.html",
-            context={"request": request, "error": f"Please verify all fields: {str(e)}", "current_user": None, "preview_public_id": public_id_generator.generate(db), "active_nav": "new_address"},
-            status_code=400
-        )
+        return render_template(
+            "address/create_edit_id.html",
+            error=f"Please verify all fields: {str(e)}",
+            current_user=None,
+            preview_public_id=public_id_generator.generate(db),
+            active_nav="new_address"
+        ), 400
 
 
-@router.post("/address/use-existing-edit-id", response_class=HTMLResponse)
-def use_existing_edit_id_submit(
-    request: Request,
-    edit_id: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    ip = get_client_ip(request)
+@addresses_bp.route("/address/use-existing-edit-id", methods=["POST"])
+def use_existing_edit_id_submit():
+    db = get_db()
+    ip = get_client_ip()
+    edit_id = request.form.get("edit_id", "").strip()
+
     try:
         user = EditIdService.verify_and_authenticate(db, edit_id, ip_address=ip)
         auth_service = AuthService(db)
         token_data = auth_service.create_edit_session_token(user)
+        session["user_id"] = user.id
 
-        response = RedirectResponse(url="/address/new", status_code=303)
+        response = make_response(redirect("/address/new", code=303))
         response.set_cookie(
             key="edit_session_token",
             value=token_data["access_token"],
             httponly=True,
             max_age=settings.EDIT_SESSION_EXPIRE_MINUTES * 60,
-            samesite="lax"
+            samesite="Lax"
         )
         return response
     except AppError as e:
-        return templates.TemplateResponse(
-            request=request,
-            name="address/create_edit_id.html",
-            context={"request": request, "error": e.message, "current_user": None, "active_nav": "new_address"},
-            status_code=e.status_code
-        )
+        return render_template(
+            "address/create_edit_id.html",
+            error=e.message,
+            current_user=None,
+            active_nav="new_address"
+        ), e.status_code
 
 
-
-@router.post("/address/new", response_class=HTMLResponse)
-def create_address_submit(
-    request: Request,
-    address_type: str = Form("PERSONAL"),
-    location_scope: str = Form("LOCAL"),
-    visibility: str = Form("PUBLIC"),
-    recipient_name: Optional[str] = Form(None),
-    business_name: Optional[str] = Form(None),
-    country: str = Form("Pakistan"),
-    country_code: str = Form("PK"),
-    province_state: Optional[str] = Form(None),
-    region_division: Optional[str] = Form(None),
-    district: Optional[str] = Form(None),
-    tehsil: Optional[str] = Form(None),
-    city: str = Form(...),
-    town: Optional[str] = Form(None),
-    area: Optional[str] = Form(None),
-    locality: Optional[str] = Form(None),
-    street: Optional[str] = Form(None),
-    road: Optional[str] = Form(None),
-    house_number: Optional[str] = Form(None),
-    building: Optional[str] = Form(None),
-    floor: Optional[str] = Form(None),
-    flat: Optional[str] = Form(None),
-    landmark: Optional[str] = Form(None),
-    postal_code: Optional[str] = Form(None),
-    latitude: Optional[float] = Form(None),
-    longitude: Optional[float] = Form(None),
-    destination_url: Optional[str] = Form(None),
-    redirect_seconds: int = Form(3),
-    current_user=Depends(get_current_web_user),
-    db: Session = Depends(get_db)
-):
+@addresses_bp.route("/address/new", methods=["POST"])
+def create_address_submit():
+    current_user = get_current_web_user()
     if not current_user:
-        return RedirectResponse(url="/address/new", status_code=303)
+        return redirect("/address/new", code=303)
+
+    db = get_db()
+    form = request.form
+    address_type = form.get("address_type", "PERSONAL")
+    location_scope = form.get("location_scope", "LOCAL")
+    visibility = form.get("visibility", "PUBLIC")
+    recipient_name = form.get("recipient_name", "").strip()
+    business_name = form.get("business_name", "").strip()
+
     try:
-        clean_recipient = recipient_name.strip() if recipient_name else ""
-        if not clean_recipient:
+        if not recipient_name:
             raise AppError("Contact person name is compulsory for all addresses.", status_code=400)
 
-        clean_business = business_name.strip() if business_name else ""
-        if address_type.upper() == AddressType.BUSINESS and not clean_business:
+        if address_type.upper() == AddressType.BUSINESS and not business_name:
             raise AppError("Business / Company name is required for business addresses.", status_code=400)
+
+        lat = float(form.get("latitude")) if form.get("latitude") and form.get("latitude").strip() else None
+        lng = float(form.get("longitude")) if form.get("longitude") and form.get("longitude").strip() else None
+        redir_sec = int(form.get("redirect_seconds", 3) or 3)
 
         data = AddressCreate(
             address_type=address_type,
             location_scope=location_scope,
             visibility=visibility,
-            recipient_name=clean_recipient,
-            business_name=clean_business if clean_business else None,
-            country=country,
-            country_code=country_code,
-            province_state=province_state,
-            region_division=region_division,
-            district=district,
-            tehsil=tehsil,
-            city=city,
-            town=town,
-            area=area,
-            locality=locality,
-            street=street,
-            road=road,
-            house_number=house_number,
-            building=building,
-            floor=floor,
-            flat=flat,
-            landmark=landmark,
-            postal_code=postal_code,
-            latitude=latitude,
-            longitude=longitude,
-            destination_url=destination_url if destination_url and destination_url.strip() else None,
-            redirect_seconds=redirect_seconds
+            recipient_name=recipient_name,
+            business_name=business_name if business_name else None,
+            country=form.get("country", "Pakistan"),
+            country_code=form.get("country_code", "PK"),
+            province_state=form.get("province_state"),
+            region_division=form.get("region_division"),
+            district=form.get("district"),
+            tehsil=form.get("tehsil"),
+            city=form.get("city", ""),
+            town=form.get("town"),
+            area=form.get("area"),
+            locality=form.get("locality"),
+            street=form.get("street"),
+            road=form.get("road"),
+            house_number=form.get("house_number"),
+            building=form.get("building"),
+            floor=form.get("floor"),
+            flat=form.get("flat"),
+            landmark=form.get("landmark"),
+            postal_code=form.get("postal_code"),
+            latitude=lat,
+            longitude=lng,
+            destination_url=form.get("destination_url") if form.get("destination_url", "").strip() else None,
+            redirect_seconds=redir_sec
         )
         service = AddressService(db)
         address = service.create_address(user_id=current_user.id, data=data)
-        return RedirectResponse(url=f"/address/{address.public_id}/view", status_code=303)
+        return redirect(f"/address/{address.public_id}/view", code=303)
     except AppError as e:
-        return templates.TemplateResponse(
-            request=request,
-            name="address/new.html",
-            context={
-                "request": request,
-                "current_user": current_user,
-                "error": e.message,
-                "active_nav": "new_address"
-            },
-            status_code=e.status_code
-        )
+        return render_template(
+            "address/new.html",
+            current_user=current_user,
+            error=e.message,
+            active_nav="new_address"
+        ), e.status_code
     except Exception as e:
-        return templates.TemplateResponse(
-            request=request,
-            name="address/new.html",
-            context={
-                "request": request,
-                "current_user": current_user,
-                "error": str(e),
-                "active_nav": "new_address"
-            },
-            status_code=400
-        )
+        return render_template(
+            "address/new.html",
+            current_user=current_user,
+            error=str(e),
+            active_nav="new_address"
+        ), 400
 
 
-@router.get("/address/{public_id}/view", response_class=HTMLResponse)
-def view_address_page(
-    public_id: str,
-    request: Request,
-    owner_transferred: Optional[str] = None,
-    new_edit_id: Optional[str] = None,
-    current_user=Depends(require_web_user),
-    db: Session = Depends(get_db)
-):
+@addresses_bp.route("/address/<public_id>/view", methods=["GET"])
+@require_web_user
+def view_address_page(public_id: str):
+    db = get_db()
+    current_user = get_current_web_user()
     service = AddressService(db)
     address = service.get_by_public_id(public_id)
     is_admin = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
     if not is_admin and address.user_id != current_user.id:
-        return RedirectResponse(url="/my-addresses", status_code=303)
+        return redirect("/my-addresses", code=303)
 
     formatted_views = AddressFormatter.format_all_views(address)
     versions = service.get_versions(public_id, user_id=current_user.id, is_admin=is_admin)
 
-    return templates.TemplateResponse(
-        request=request,
-        name="address/view.html",
-        context={
-            "request": request,
-            "current_user": current_user,
-            "address": address,
-            "formatted_views": formatted_views,
-            "versions": versions,
-            "base_url": settings.PUBLIC_BASE_URL,
-            "owner_transferred": owner_transferred == "true",
-            "new_edit_id": new_edit_id,
-            "active_nav": "my_addresses"
-        }
+    owner_transferred = request.args.get("owner_transferred") == "true"
+    new_edit_id = request.args.get("new_edit_id")
+
+    return render_template(
+        "address/view.html",
+        current_user=current_user,
+        address=address,
+        formatted_views=formatted_views,
+        versions=versions,
+        base_url=settings.PUBLIC_BASE_URL,
+        owner_transferred=owner_transferred,
+        new_edit_id=new_edit_id,
+        active_nav="my_addresses"
     )
 
 
-@router.get("/address/{public_id}/edit", response_class=HTMLResponse)
-def edit_address_page(
-    public_id: str,
-    request: Request,
-    current_user=Depends(require_web_user),
-    db: Session = Depends(get_db)
-):
+@addresses_bp.route("/address/<public_id>/edit", methods=["GET"])
+@require_web_user
+def edit_address_page(public_id: str):
+    db = get_db()
+    current_user = get_current_web_user()
     service = AddressService(db)
     address = service.get_by_public_id(public_id)
     is_admin = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
     if not is_admin and address.user_id != current_user.id:
-        return RedirectResponse(url="/my-addresses", status_code=303)
+        return redirect("/my-addresses", code=303)
 
-    return templates.TemplateResponse(
-        request=request,
-        name="address/edit.html",
-        context={
-            "request": request,
-            "current_user": current_user,
-            "address": address,
-            "active_nav": "my_addresses"
-        }
+    return render_template(
+        "address/edit.html",
+        current_user=current_user,
+        address=address,
+        active_nav="my_addresses"
     )
 
 
-@router.post("/address/{public_id}/edit", response_class=HTMLResponse)
-def edit_address_submit(
-    public_id: str,
-    request: Request,
-    address_type: str = Form("PERSONAL"),
-    location_scope: str = Form("LOCAL"),
-    recipient_name: Optional[str] = Form(None),
-    business_name: Optional[str] = Form(None),
-    country: str = Form(...),
-    city: str = Form(...),
-    house_number: Optional[str] = Form(None),
-    street: Optional[str] = Form(None),
-    district: Optional[str] = Form(None),
-    landmark: Optional[str] = Form(None),
-    latitude: Optional[float] = Form(None),
-    longitude: Optional[float] = Form(None),
-    destination_url: Optional[str] = Form(None),
-    redirect_seconds: int = Form(3),
-    is_active: str = Form("true"),
-    current_user=Depends(require_web_user),
-    db: Session = Depends(get_db)
-):
+@addresses_bp.route("/address/<public_id>/edit", methods=["POST"])
+@require_web_user
+def edit_address_submit(public_id: str):
+    db = get_db()
+    current_user = get_current_web_user()
     service = AddressService(db)
     is_admin = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
+    form = request.form
+
     try:
-        clean_recipient = recipient_name.strip() if recipient_name else ""
-        if not clean_recipient:
+        recipient_name = form.get("recipient_name", "").strip()
+        if not recipient_name:
             raise AppError("Contact person name is compulsory.", status_code=400)
 
-        clean_business = business_name.strip() if business_name else ""
-        if address_type.upper() == AddressType.BUSINESS and not clean_business:
+        address_type = form.get("address_type", "PERSONAL")
+        business_name = form.get("business_name", "").strip()
+        if address_type.upper() == AddressType.BUSINESS and not business_name:
             raise AppError("Business / Company name is required for business addresses.", status_code=400)
+
+        lat = float(form.get("latitude")) if form.get("latitude") and form.get("latitude").strip() else None
+        lng = float(form.get("longitude")) if form.get("longitude") and form.get("longitude").strip() else None
+        redir_sec = int(form.get("redirect_seconds", 3) or 3)
+        is_active = form.get("is_active", "true") == "true"
 
         update_data = AddressUpdate(
             address_type=address_type,
-            location_scope=location_scope,
-            recipient_name=clean_recipient,
-            business_name=clean_business if clean_business else None,
-            country=country,
-            city=city,
-            house_number=house_number,
-            street=street,
-            district=district,
-            landmark=landmark,
-            latitude=latitude,
-            longitude=longitude,
-            destination_url=destination_url if destination_url and destination_url.strip() else None,
-            redirect_seconds=redirect_seconds,
-            is_active=(is_active == "true")
+            location_scope=form.get("location_scope", "LOCAL"),
+            recipient_name=recipient_name,
+            business_name=business_name if business_name else None,
+            country=form.get("country", ""),
+            city=form.get("city", ""),
+            house_number=form.get("house_number"),
+            street=form.get("street"),
+            district=form.get("district"),
+            landmark=form.get("landmark"),
+            latitude=lat,
+            longitude=lng,
+            destination_url=form.get("destination_url") if form.get("destination_url", "").strip() else None,
+            redirect_seconds=redir_sec,
+            is_active=is_active
         )
         service.update_address(
             public_id=public_id,
@@ -380,34 +316,23 @@ def edit_address_submit(
             data=update_data,
             is_admin=is_admin
         )
-        return RedirectResponse(url=f"/address/{public_id}/view", status_code=303)
+        return redirect(f"/address/{public_id}/view", code=303)
     except AppError as e:
         address = service.get_by_public_id(public_id)
-        return templates.TemplateResponse(
+        return render_template(
             "address/edit.html",
-            {
-                "request": request,
-                "current_user": current_user,
-                "address": address,
-                "error": e.message,
-                "active_nav": "my_addresses"
-            },
-            status_code=e.status_code
-        )
+            current_user=current_user,
+            address=address,
+            error=e.message,
+            active_nav="my_addresses"
+        ), e.status_code
 
 
-@router.post("/address/{public_id}/transfer-owner", response_class=HTMLResponse)
-def transfer_business_owner_submit(
-    public_id: str,
-    request: Request,
-    new_owner_name: str = Form(...),
-    father_name: str = Form(...),
-    mother_name: str = Form(...),
-    cnic_or_id_card: str = Form(...),
-    date_of_birth: str = Form(...),
-    current_user=Depends(require_web_user),
-    db: Session = Depends(get_db)
-):
+@addresses_bp.route("/address/<public_id>/transfer-owner", methods=["POST"])
+@require_web_user
+def transfer_business_owner_submit(public_id: str):
+    db = get_db()
+    current_user = get_current_web_user()
     service = AddressService(db)
     address = service.get_by_public_id(public_id)
     is_admin = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
@@ -417,11 +342,17 @@ def transfer_business_owner_submit(
     if address.address_type != AddressType.BUSINESS:
         raise AppError("Owner transfer is strictly permitted for Business Addresses only.", status_code=400)
 
-    clean_name = new_owner_name.strip()
-    if not clean_name:
+    form = request.form
+    new_owner_name = form.get("new_owner_name", "").strip()
+    father_name = form.get("father_name", "").strip()
+    mother_name = form.get("mother_name", "").strip()
+    cnic_or_id_card = form.get("cnic_or_id_card", "").strip()
+    date_of_birth = form.get("date_of_birth", "").strip()
+
+    if not new_owner_name:
         raise AppError("New owner contact person name is compulsory.", status_code=400)
 
-    clean_cnic = "".join(filter(str.isdigit, cnic_or_id_card.strip()))
+    clean_cnic = "".join(filter(str.isdigit, cnic_or_id_card))
     if len(clean_cnic) > 3 or len(clean_cnic) == 0:
         raise AppError("CNIC ending must be between 1 and 3 numeric digits (e.g. 123).", status_code=400)
 
@@ -430,7 +361,6 @@ def transfer_business_owner_submit(
     except Exception:
         raise AppError("Invalid date of birth format. Please use YYYY-MM-DD.", status_code=400)
 
-    # Generate new unique 13-character Edit ID for the new business owner
     new_raw_edit_id = EditIdService.generate_unique_edit_id(
         db=db,
         public_id=address.public_id,
@@ -447,19 +377,18 @@ def transfer_business_owner_submit(
 
     user = db.query(User).filter(User.id == address.user_id).first()
     if user:
-        user.full_name = clean_name
-        user.father_name = father_name.strip()
-        user.mother_name = mother_name.strip()
+        user.full_name = new_owner_name
+        user.father_name = father_name
+        user.mother_name = mother_name
         user.cnic_or_id_card = clean_cnic
         user.date_of_birth = dob
         user.edit_id_hash = hash_edit_id(normalize_edit_id(new_raw_edit_id))
 
-    address.recipient_name = clean_name
+    address.recipient_name = new_owner_name
     address.address_text = AddressFormatter.format_full(address)
     db.commit()
     db.refresh(address)
 
-    # Record snapshot in address_versions
     snapshot_json = service._serialize_address_snapshot(address)
     existing_versions = service.repo.get_versions(address.id)
     next_ver = (existing_versions[0].version_number + 1) if existing_versions else 1
@@ -473,16 +402,17 @@ def transfer_business_owner_submit(
 
     auth_service = AuthService(db)
     token_data = auth_service.create_edit_session_token(user)
+    session["user_id"] = user.id
 
-    response = RedirectResponse(
-        url=f"/address/{public_id}/view?owner_transferred=true&new_edit_id={new_raw_edit_id}",
-        status_code=303
-    )
+    response = make_response(redirect(
+        f"/address/{public_id}/view?owner_transferred=true&new_edit_id={new_raw_edit_id}",
+        code=303
+    ))
     response.set_cookie(
         key="edit_session_token",
         value=token_data["access_token"],
         httponly=True,
         max_age=settings.EDIT_SESSION_EXPIRE_MINUTES * 60,
-        samesite="lax"
+        samesite="Lax"
     )
     return response
