@@ -179,8 +179,10 @@ def set_admin_credentials(args):
             admin.username = username
             admin.password_hash = hash_password(password)
             admin.account_status = AccountStatus.ACTIVE
+            admin.failed_login_attempts = 0
+            admin.locked_until = None
             db.commit()
-            print(f"[OK] Administrator credentials updated successfully for user '{username}'.")
+            print(f"[OK] Administrator credentials updated & unlocked for user '{username}'.")
         else:
             from datetime import date, datetime, timezone
             from app.services.edit_id_service import EditIdService

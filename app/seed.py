@@ -51,13 +51,15 @@ def seed_database():
             db.refresh(admin)
             logger.info(f"Admin user created: {admin_username} (Edit ID: {raw_edit_id})")
         else:
-            # If settings specify non-default or admin username changed, update
-            if admin_username != "admin" and admin.username != admin_username:
-                admin.username = admin_username
-                admin.password_hash = hash_password(admin_password)
-                db.commit()
-                db.refresh(admin)
-                logger.info(f"Admin user updated to: {admin_username}")
+            # Always ensure admin credentials match settings, account is active and unlocked
+            admin.username = admin_username
+            admin.password_hash = hash_password(admin_password)
+            admin.account_status = AccountStatus.ACTIVE
+            admin.failed_login_attempts = 0
+            admin.locked_until = None
+            db.commit()
+            db.refresh(admin)
+            logger.info(f"Admin user synchronized & unlocked: {admin_username}")
 
         # Check if demo address exists
         demo_addr = db.query(Address).filter(Address.public_id == "ab1226").first()
