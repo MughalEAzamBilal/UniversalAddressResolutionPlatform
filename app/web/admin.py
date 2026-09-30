@@ -167,17 +167,26 @@ def admin_logs_page():
         active_nav="admin_logs"
     )
 
+def _get_sqlite_paths():
+    db_url = settings.DATABASE_URL
+    rel_path = db_url.replace("sqlite:///", "")
+    if os.path.isabs(rel_path):
+        src_path = rel_path
+    else:
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        src_path = os.path.normpath(os.path.join(project_root, rel_path))
+    backups_dir = os.path.join(os.path.dirname(src_path), "backups")
+    return src_path, backups_dir
+
 
 @admin_bp.route("/system/backup", methods=["GET"])
 @require_web_admin
 def admin_backup_database():
-    db_url = settings.DATABASE_URL
-    src_path = db_url.replace("sqlite:///", "")
+    src_path, backups_dir = _get_sqlite_paths()
     if os.path.exists(src_path):
-        backups_dir = os.path.join(os.path.dirname(src_path), "backups")
         os.makedirs(backups_dir, exist_ok=True)
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        dest_path = os.path.join(backups_dir, f"backup_{timestamp}.db")
+        dest_path = os.path.abspath(os.path.join(backups_dir, f"backup_{timestamp}.db"))
         
         src_conn = sqlite3.connect(src_path)
         dest_conn = sqlite3.connect(dest_path)
@@ -186,7 +195,42 @@ def admin_backup_database():
         dest_conn.close()
         src_conn.close()
 
-    return redirect("/admin?backup=success")
+        if request.args.get("download") == "true":
+            from flask import send_file
+            return send_file(
+                dest_path,
+                as_attachment=True,
+                download_name=f"address_platform_backup_{timestamp}.db"
+            )
+
+    return redirect("/admin?backup=success", code=303)
+
+
+@admin_bp.route("/system/backup/download", methods=["GET"])
+@require_web_admin
+def admin_download_backup():
+    src_path, backups_dir = _get_sqlite_paths()
+    if not os.path.exists(src_path):
+        from flask import abort
+        abort(404)
+
+    os.makedirs(backups_dir, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    dest_path = os.path.abspath(os.path.join(backups_dir, f"backup_{timestamp}.db"))
+
+    src_conn = sqlite3.connect(src_path)
+    dest_conn = sqlite3.connect(dest_path)
+    with dest_conn:
+        src_conn.backup(dest_conn)
+    dest_conn.close()
+    src_conn.close()
+
+    from flask import send_file
+    return send_file(
+        dest_path,
+        as_attachment=True,
+        download_name=f"address_platform_backup_{timestamp}.db"
+    )
 
 
 @admin_bp.route("/ads", methods=["GET"])

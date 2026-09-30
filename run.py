@@ -209,6 +209,65 @@ def set_admin_credentials(args):
         db.close()
 
 
+def restore_backup(args):
+    """Restores database from a specified SQLite backup file or the latest backup in data/backups/."""
+    from app.core.config import get_settings
+    settings = get_settings()
+    db_url = settings.DATABASE_URL
+    if not db_url.startswith("sqlite"):
+        print("Error: Restore is only supported for SQLite databases.")
+        sys.exit(1)
+
+    target_db_path = os.path.abspath(db_url.replace("sqlite:///", ""))
+    backups_dir = os.path.join(os.path.dirname(target_db_path), "backups")
+
+    backup_file = args[0] if len(args) > 0 else None
+    if not backup_file:
+        if os.path.exists(backups_dir):
+            available = sorted([f for f in os.listdir(backups_dir) if f.endswith(".db")])
+            if available:
+                backup_file = os.path.join(backups_dir, available[-1])
+                print(f"No backup path specified. Using latest detected backup: {available[-1]}")
+            else:
+                print("Error: No backup specified and none found in data/backups/.")
+                sys.exit(1)
+        else:
+            print("Error: Please provide path to backup: python run.py restore <backup.db>")
+            sys.exit(1)
+
+    if not os.path.exists(backup_file):
+        print(f"Error: Backup file not found: {backup_file}")
+        sys.exit(1)
+
+    import sqlite3
+    import shutil
+    try:
+        test_conn = sqlite3.connect(backup_file)
+        test_cursor = test_conn.cursor()
+        test_cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = test_cursor.fetchall()
+        test_conn.close()
+        if not tables:
+            print("Error: Backup file contains no tables.")
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error: Corrupted database file: {e}")
+        sys.exit(1)
+
+    for suffix in ("-wal", "-shm", "-journal"):
+        lock_file = target_db_path + suffix
+        if os.path.exists(lock_file):
+            try:
+                os.remove(lock_file)
+            except Exception:
+                pass
+
+    os.makedirs(os.path.dirname(target_db_path), exist_ok=True)
+    shutil.copyfile(backup_file, target_db_path)
+    print(f"[OK] Database successfully restored from '{backup_file}'.")
+    print(f"[OK] Active database is now: {target_db_path}")
+
+
 def print_help():
     print("""Universal Address Resolution Platform CLI
 
@@ -216,17 +275,19 @@ Usage:
   python run.py [COMMAND] [OPTIONS]
 
 Commands:
-  start               Start the web server (Default when no command provided)
-  setup               Create virtual environment, install requirements & setup DB
-  test [ARGS]         Run pytest suite (e.g. python run.py test -k test_edit_id)
-  seed                Seed database with initial admin and sample addresses
-  set-admin [USER] [PASS]  Change administrator username and password
-  help, --help, -h    Show this help message
+  start                     Start the web server (Default when no command provided)
+  setup                     Create virtual environment, install requirements & setup DB
+  test [ARGS]               Run pytest suite (e.g. python run.py test -k test_edit_id)
+  seed                      Seed database with initial admin and sample addresses
+  set-admin [USER] [PASS]   Change administrator username and password
+  restore [FILE]            Restore database from a .db backup file
+  help, --help, -h          Show this help message
 
 Examples:
   python run.py
   python run.py setup
-  python run.py set-admin myadmin MyPassword123!
+  python run.py set-admin admin MySecretPass123!
+  python run.py restore data/backups/backup_20260930_121951.db
   python run.py test
 """)
 
@@ -245,6 +306,8 @@ if __name__ == "__main__":
         run_seed()
     elif command in ("set-admin", "change-admin", "admin-credentials"):
         set_admin_credentials(args[1:])
+    elif command in ("restore", "restore-backup", "backup-restore"):
+        restore_backup(args[1:])
     elif command in ("help", "--help", "-h"):
         print_help()
     else:
