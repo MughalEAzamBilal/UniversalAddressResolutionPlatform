@@ -1,10 +1,15 @@
 import os
 import sys
 
-# 1. Add project directory to sys.path
+# 1. Add project directory to sys.path and set working directory
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+
+try:
+    os.chdir(PROJECT_ROOT)
+except Exception:
+    pass
 
 # 2. Automatically ensure database tables & initial data exist
 try:
