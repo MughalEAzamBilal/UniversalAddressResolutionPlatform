@@ -14,7 +14,7 @@ if db_url.startswith("sqlite"):
     if db_dir and not os.path.exists(db_dir):
         os.makedirs(db_dir, exist_ok=True)
 
-connect_args = {"check_same_thread": False} if db_url.startswith("sqlite") else {}
+connect_args = {"check_same_thread": False, "timeout": 15} if db_url.startswith("sqlite") else {}
 
 engine = create_engine(
     db_url,
@@ -23,13 +23,23 @@ engine = create_engine(
     future=True
 )
 
-# Enable foreign keys and WAL mode for SQLite
+# Enable foreign keys and safe journal mode for SQLite (avoid WAL on NFS/PythonAnywhere)
 if db_url.startswith("sqlite"):
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        if settings.APP_ENV != "production":
+            try:
+                cursor.execute("PRAGMA journal_mode=WAL")
+            except Exception:
+                pass
+        else:
+            try:
+                cursor.execute("PRAGMA journal_mode=DELETE")
+            except Exception:
+                pass
         cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)

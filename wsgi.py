@@ -16,12 +16,10 @@ env_path = os.path.join(PROJECT_ROOT, "app", ".env")
 if os.path.exists(env_path):
     load_dotenv(env_path)
 
-# Initialize database & seed admin if needed
+# Initialize database tables if not created
 try:
     from app.database.session import init_db
-    from app.seed import seed_database
     init_db()
-    seed_database()
 except Exception as exc:
     print(f"[WSGI Init Warning]: {exc}", file=sys.stderr)
 
