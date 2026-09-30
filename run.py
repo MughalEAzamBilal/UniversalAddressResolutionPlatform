@@ -50,7 +50,7 @@ def run_setup():
     if not os.path.exists(venv_dir):
         print("\n[1/4] Creating Python virtual environment in .venv ...")
         subprocess.check_call([sys.executable, "-m", "venv", ".venv"])
-        print("✓ Virtual environment created.")
+        print("[OK] Virtual environment created.")
     else:
         print("\n[1/4] Virtual environment (.venv) already exists.")
 
@@ -62,7 +62,7 @@ def run_setup():
         print("\n[2/4] Installing / updating dependencies from requirements.txt ...")
         subprocess.check_call([py_exe, "-m", "pip", "install", "--upgrade", "pip"])
         subprocess.check_call([py_exe, "-m", "pip", "install", "-r", "requirements.txt"])
-        print("✓ Dependencies installed successfully.")
+        print("[OK] Dependencies installed successfully.")
 
     # 3. Environment configuration
     env_file = os.path.join(PROJECT_ROOT, "app", ".env")
@@ -70,14 +70,14 @@ def run_setup():
     if not os.path.exists(env_file) and os.path.exists(env_example):
         print("\n[3/4] Initializing app/.env from template ...")
         shutil.copyfile(env_example, env_file)
-        print("✓ Configuration initialized.")
+        print("[OK] Configuration initialized.")
     else:
         print("\n[3/4] Configuration verified.")
 
     # 4. Database initialization & seed
     print("\n[4/4] Initializing database & seeding administrator ...")
     subprocess.check_call([py_exe, "-c", "from app.seed import seed_database; seed_database()"])
-    print("✓ Database setup & seeding complete.")
+    print("[OK] Database setup & seeding complete.")
 
     print("\n" + "=" * 64)
     print("Setup finished! Start the application by running: python run.py")
@@ -140,8 +140,6 @@ def run_server():
     print("=" * 64)
     print(f"  * Web Application URL:   {settings.PUBLIC_BASE_URL}")
     print(f"  * Create Address:        {settings.PUBLIC_BASE_URL}/address/new")
-    print(f"  * Admin Panel:           {settings.PUBLIC_BASE_URL}/admin")
-    print(f"  * Default Admin Login:   admin / Admin123456!")
     print("=" * 64 + "\n")
 
     try:
@@ -155,6 +153,62 @@ def run_server():
         sys.exit(0)
 
 
+def set_admin_credentials(args):
+    """Sets or updates the administrator username and password."""
+    username = args[0] if len(args) > 0 else None
+    password = args[1] if len(args) > 1 else None
+
+    if not username:
+        username = input("Enter new admin username: ").strip()
+    if not password:
+        import getpass
+        password = getpass.getpass("Enter new admin password: ").strip()
+
+    if not username or not password:
+        print("Error: Both username and password are required.")
+        sys.exit(1)
+
+    from app.database.session import SessionLocal, init_db
+    from app.models.user import User, UserRole, AccountStatus
+    from app.core.security import hash_password
+    init_db()
+    db = SessionLocal()
+    try:
+        admin = db.query(User).filter(User.role.in_([UserRole.SUPER_ADMIN, UserRole.ADMIN])).first()
+        if admin:
+            admin.username = username
+            admin.password_hash = hash_password(password)
+            admin.account_status = AccountStatus.ACTIVE
+            db.commit()
+            print(f"[OK] Administrator credentials updated successfully for user '{username}'.")
+        else:
+            from datetime import date, datetime, timezone
+            from app.services.edit_id_service import EditIdService
+            from app.core.security import hash_edit_id
+            dob = date(1985, 1, 1)
+            raw_edit_id = EditIdService.generate_edit_id("ab1226", "Muhammad", "Amina", "786", dob)
+            admin = User(
+                username=username,
+                email=f"{username}@universaladdress.local",
+                public_id="ab1226",
+                full_name="Platform Administrator",
+                father_name="Muhammad",
+                mother_name="Amina",
+                cnic_or_id_card="786",
+                date_of_birth=dob,
+                password_hash=hash_password(password),
+                edit_id_hash=hash_edit_id(raw_edit_id),
+                role=UserRole.SUPER_ADMIN,
+                account_status=AccountStatus.ACTIVE,
+                created_at=datetime.now(timezone.utc)
+            )
+            db.add(admin)
+            db.commit()
+            print(f"[OK] Administrator '{username}' created successfully.")
+    finally:
+        db.close()
+
+
 def print_help():
     print("""Universal Address Resolution Platform CLI
 
@@ -166,14 +220,14 @@ Commands:
   setup               Create virtual environment, install requirements & setup DB
   test [ARGS]         Run pytest suite (e.g. python run.py test -k test_edit_id)
   seed                Seed database with initial admin and sample addresses
-  migrate             Execute Alembic migrations to upgrade database schema
+  set-admin [USER] [PASS]  Change administrator username and password
   help, --help, -h    Show this help message
 
 Examples:
   python run.py
   python run.py setup
+  python run.py set-admin myadmin MyPassword123!
   python run.py test
-  python run.py test -v tests/test_addresses.py
 """)
 
 
@@ -189,12 +243,12 @@ if __name__ == "__main__":
         run_tests(args[1:])
     elif command in ("seed", "--seed"):
         run_seed()
-    elif command in ("migrate", "migration", "--migrate"):
-        run_migrate()
+    elif command in ("set-admin", "change-admin", "admin-credentials"):
+        set_admin_credentials(args[1:])
     elif command in ("help", "--help", "-h"):
         print_help()
     else:
-        # If user passed uvicorn/pytest options directly or unknown
+        # If user passed options directly or unknown
         print(f"Unknown command: '{command}'\n")
         print_help()
         sys.exit(1)

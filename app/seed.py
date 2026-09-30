@@ -15,8 +15,13 @@ def seed_database():
     init_db()
     db: Session = SessionLocal()
     try:
+        from app.core.config import get_settings
+        settings = get_settings()
+        admin_username = settings.ADMIN_USERNAME
+        admin_password = settings.ADMIN_PASSWORD
+
         # Check if an admin exists
-        admin = db.query(User).filter(User.username == "admin").first()
+        admin = db.query(User).filter(User.role.in_([UserRole.SUPER_ADMIN, UserRole.ADMIN])).first()
         if not admin:
             dob = date(1985, 1, 1)
             raw_edit_id = EditIdService.generate_edit_id(
@@ -27,15 +32,15 @@ def seed_database():
                 date_of_birth=dob
             )
             admin = User(
-                username="admin",
-                email="admin@universaladdress.local",
+                username=admin_username,
+                email=f"{admin_username}@universaladdress.local",
                 public_id="ab1226",
                 full_name="Platform Administrator",
                 father_name="Muhammad",
                 mother_name="Amina",
                 cnic_or_id_card="786",
                 date_of_birth=dob,
-                password_hash=hash_password("Admin123456!"),
+                password_hash=hash_password(admin_password),
                 edit_id_hash=hash_edit_id(raw_edit_id),
                 role=UserRole.SUPER_ADMIN,
                 account_status=AccountStatus.ACTIVE,
@@ -44,7 +49,15 @@ def seed_database():
             db.add(admin)
             db.commit()
             db.refresh(admin)
-            logger.info(f"Default admin user created: admin (Edit ID: {raw_edit_id})")
+            logger.info(f"Admin user created: {admin_username} (Edit ID: {raw_edit_id})")
+        else:
+            # If settings specify non-default or admin username changed, update
+            if admin_username != "admin" and admin.username != admin_username:
+                admin.username = admin_username
+                admin.password_hash = hash_password(admin_password)
+                db.commit()
+                db.refresh(admin)
+                logger.info(f"Admin user updated to: {admin_username}")
 
         # Check if demo address exists
         demo_addr = db.query(Address).filter(Address.public_id == "ab1226").first()

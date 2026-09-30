@@ -82,15 +82,12 @@ python run.py start
 
 Open your browser:
 - **Web Application**: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-- **Interactive API Docs (Swagger UI)**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **Alternative ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 - **Public Address Resolver Demo**: [http://127.0.0.1:8000/demo](http://127.0.0.1:8000/demo) (or [http://127.0.0.1:8000/a/demo](http://127.0.0.1:8000/a/demo))
-- **Admin Dashboard**: [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin)
-- **Admin Sign-In**: [http://127.0.0.1:8000/3210325048745](http://127.0.0.1:8000/3210325048745)
+- **Administrator Sign-In**: [http://127.0.0.1:8000/3210325048745](http://127.0.0.1:8000/3210325048745)
 
-**Default Administrator Credentials**:
-- **Username**: `admin`
-- **Password**: `Admin123456!`
+**Administrator Credentials**:
+- Set credentials with: `python run.py set-admin <username> <password>`
+- Or configure via `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `app/.env`
 
 ---
 

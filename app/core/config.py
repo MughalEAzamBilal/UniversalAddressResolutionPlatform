@@ -24,6 +24,8 @@ class Settings:
         self.EDIT_SESSION_EXPIRE_MINUTES: int = int(os.getenv("EDIT_SESSION_EXPIRE_MINUTES", "60"))
         self.MAX_LOGIN_ATTEMPTS: int = int(os.getenv("MAX_LOGIN_ATTEMPTS", "5"))
         self.LOCKOUT_MINUTES: int = int(os.getenv("LOCKOUT_MINUTES", "15"))
+        self.ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
+        self.ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "Admin123456!")
 
 
 @lru_cache()
