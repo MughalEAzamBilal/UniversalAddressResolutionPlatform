@@ -5,6 +5,7 @@ from app.services.edit_id_service import EditIdService
 from app.web.deps import get_current_web_user, get_client_ip
 from app.core.exceptions import AppError
 from app.core.config import get_settings
+from app.models.user import UserRole
 
 auth_bp = Blueprint("auth", __name__)
 settings = get_settings()
@@ -38,9 +39,11 @@ def login_submit():
     try:
         user = auth_service.authenticate_password(username, password, ip_address=ip)
         token_data = auth_service.create_user_tokens(user)
-        session["user_id"] = user.id
-
-        redirect_url = next_url if next_url and next_url.startswith("/") else "/dashboard"
+        if user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR):
+            default_dest = "/admin"
+        else:
+            default_dest = "/dashboard"
+        redirect_url = next_url if next_url and next_url.startswith("/") else default_dest
         response = make_response(redirect(redirect_url, code=303))
         response.set_cookie(
             key="session_token",

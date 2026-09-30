@@ -1,6 +1,6 @@
 from functools import wraps
 from typing import Optional
-from flask import request, session, redirect, g
+from flask import request, session, redirect, g, abort
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.core.security import decode_access_token
@@ -58,13 +58,11 @@ def require_web_user(f):
 
 
 def require_web_admin(f):
-    """Decorator requiring admin role; otherwise redirects to /dashboard."""
+    """Decorator requiring admin role; returns 404 Not Found without redirecting."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = get_current_web_user()
-        if not user:
-            return redirect(f"/3210325048745?next={request.path}", code=303)
-        if user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR):
-            return redirect("/dashboard", code=303)
+        if not user or user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR):
+            abort(404)
         return f(*args, **kwargs)
     return decorated_function
