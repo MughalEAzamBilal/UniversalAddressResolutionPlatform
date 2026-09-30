@@ -88,7 +88,7 @@ def run_setup():
 def run_tests(extra_args):
     """Executes pytest suite."""
     py_exe = sys.executable
-    cmd = [py_exe, "-m", "pytest"]
+    cmd = [py_exe, "-m", "pytest", "-o", "asyncio_mode=auto", "-W", "ignore::DeprecationWarning"]
     if not extra_args:
         cmd.extend(["-v", "tests"])
     else:

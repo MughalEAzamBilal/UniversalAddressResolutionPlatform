@@ -143,3 +143,12 @@ async def app_error_handler(request: Request, exc: AppError):
         },
         status_code=exc.status_code
     )
+
+
+# WSGI application callable for WSGI web servers (e.g. PythonAnywhere)
+try:
+    from a2wsgi import ASGIMiddleware
+    application = ASGIMiddleware(app)
+except ImportError:
+    application = app
+
